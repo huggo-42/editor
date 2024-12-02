@@ -1,0 +1,68 @@
+name: JavaScript Style Guide
+version: 1.0.0
+last_updated: 2024-03-14
+
+rules:
+  naming:
+    variables:
+      style: camelCase
+      examples:
+        - good: userName
+          bad: user_name
+    components:
+      style: PascalCase
+      examples:
+        - good: UserProfile
+          bad: userProfile
+    
+  formatting:
+    indent: 2
+    max_line_length: 80
+    quotes: single
+    
+  patterns:
+    preferred:
+      - name: Array Methods
+        use: array.map(), array.filter()
+        avoid: for loops
+        example: |
+          // Good
+          const newArray = items.map(item => transform(item));
+          
+          // Avoid
+          const newArray = [];
+          for (let i = 0; i < items.length; i++) {
+            newArray.push(transform(items[i]));
+          }
+      
+      - name: Async/Await
+        use: async/await
+        avoid: raw promises
+        example: |
+          // Good
+          async function getData() {
+            const result = await api.fetch();
+            return result;
+          }
+          
+          // Avoid
+          function getData() {
+            return api.fetch().then(result => result);
+          }
+
+ai_prompts:
+  style_check: |
+    Review this code following our JavaScript style guide:
+    - Use camelCase for variables
+    - Use PascalCase for components
+    - Prefer array methods over loops
+    - Use async/await for async operations
+    - Keep lines under 80 characters
+    - Use single quotes for strings
+    
+  refactor_suggestions: |
+    Suggest refactoring while considering:
+    - Our naming conventions
+    - Preferred patterns
+    - Modern JavaScript features
+    - Code organization guidelines

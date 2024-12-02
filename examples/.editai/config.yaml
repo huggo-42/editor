@@ -1,0 +1,90 @@
+organization:
+  name: ExampleOrg
+  id: org_example123
+  settings:
+    default_language: en
+    timezone: UTC
+    security_level: high
+
+knowledge_base:
+  sources:
+    internal:
+      - path: knowledge/codestyle
+        update_interval: weekly
+      - path: knowledge/guidelines
+        update_interval: daily
+      - path: knowledge/api
+        auto_sync: true
+    external:
+      - name: React Documentation
+        url: https://react.dev/docs
+        sync_schedule: daily
+        sections:
+          - reference
+          - api
+      - name: Company Backend API
+        url: https://api.company.com/docs
+        auth:
+          type: bearer
+          token_env: API_TOKEN
+      - name: Design System
+        github: company/design-system
+        branch: main
+        path: docs
+
+workflows:
+  ci:
+    security_check:
+      runs_on: [push, pull_request]
+      steps:
+        - name: Dependency Scan
+          tool: security/dependency-scanner
+          severity: high
+        - name: Code Analysis
+          tool: security/code-analyzer
+          config: strict
+        - name: Secret Detection
+          tool: security/secret-detector
+    
+    code_quality:
+      runs_on: [pull_request]
+      steps:
+        - name: Style Check
+          tool: quality/style-checker
+          rules: knowledge/codestyle/rules.yaml
+        - name: Test Coverage
+          tool: quality/coverage-checker
+          minimum: 80%
+
+  review:
+    auto_review:
+      trigger: [pull_request]
+      steps:
+        - name: Code Review
+          tool: ai/code-reviewer
+          context:
+            - knowledge/guidelines
+            - knowledge/codestyle
+        - name: Documentation Check
+          tool: quality/docs-checker
+          standards: knowledge/guidelines/docs.yaml
+
+tools:
+  allowed_sources:
+    - org/internal
+    - marketplace/verified
+  default_permissions:
+    terminal: restricted
+    http: allowed
+    browser: prompt
+    vision: allowed
+    lua: sandboxed
+
+security:
+  allowed_domains:
+    - company.com
+    - github.com
+    - npmjs.com
+  secret_scanning: enabled
+  dependency_checking: enabled
+  code_signing: required

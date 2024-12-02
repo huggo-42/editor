@@ -1,0 +1,80 @@
+name: WebScraper
+version: 1.0.0
+description: A tool to scrape web content and process it
+
+capabilities:
+  - browser
+  - http
+  - vision
+  - terminal
+
+parameters:
+  - name: url
+    type: string
+    description: URL to scrape
+    required: true
+  - name: selector
+    type: string
+    description: CSS selector to extract
+    required: true
+  - name: process_type
+    type: enum
+    values: [text, image, table]
+    default: text
+
+steps:
+  - name: Fetch Page
+    type: browser
+    action: navigate
+    params:
+      url: ${url}
+      waitFor: ${selector}
+
+  - name: Extract Content
+    type: browser
+    action: extract
+    params:
+      selector: ${selector}
+      store_as: raw_content
+
+  - name: Process Content
+    type: lua
+    code: |
+      function process(content, type)
+        if type == "text" then
+          return content:gsub("%s+", " "):trim()
+        elseif type == "table" then
+          return json.encode(parse_table(content))
+        end
+        return content
+      end
+      
+      return process(raw_content, process_type)
+
+  - name: Save Result
+    type: terminal
+    command: |
+      echo "${result}" > output.json
+
+error_handling:
+  retry:
+    max_attempts: 3
+    delay: 1000
+  fallback:
+    type: http
+    action: fetch
+    params:
+      url: ${url}
+
+validation:
+  - type: lua
+    code: |
+      return #result > 0
+
+version_control:
+  repository: tools/web_scraper
+  branch: main
+  tags:
+    - web
+    - scraping
+    - automation

@@ -1,0 +1,94 @@
+name: Code Review Workflow
+version: 1.0.0
+description: Automated code review process
+
+triggers:
+  - pull_request.created
+  - pull_request.synchronized
+  - manual
+
+environment:
+  knowledge_base:
+    - codestyle/*
+    - guidelines/*
+    - api/current
+  external_docs:
+    - react
+    - typescript
+
+steps:
+  - name: Initialize Review
+    tool: context/builder
+    params:
+      include:
+        - changed_files
+        - pr_description
+        - related_issues
+      store_as: review_context
+
+  - name: Style Check
+    tool: quality/style-checker
+    params:
+      rules: ${knowledge_base}/codestyle
+      context: ${review_context}
+      report_format: markdown
+
+  - name: Security Scan
+    tool: security/scanner
+    params:
+      level: high
+      include_deps: true
+      context: ${review_context}
+
+  - name: Documentation Check
+    tool: docs/validator
+    params:
+      standards: ${knowledge_base}/guidelines/docs
+      api_docs: ${knowledge_base}/api/current
+      context: ${review_context}
+
+  - name: AI Review
+    tool: ai/reviewer
+    params:
+      context: ${review_context}
+      style_guide: ${knowledge_base}/codestyle
+      guidelines: ${knowledge_base}/guidelines
+      focus:
+        - patterns
+        - best_practices
+        - potential_issues
+        - performance
+      output:
+        format: markdown
+        sections:
+          - summary
+          - issues
+          - suggestions
+          - examples
+
+  - name: Generate Report
+    tool: report/generator
+    params:
+      inputs:
+        - ${style_check.output}
+        - ${security_scan.output}
+        - ${docs_check.output}
+        - ${ai_review.output}
+      template: templates/review-report
+      format: markdown
+
+notifications:
+  on_complete:
+    - type: github_comment
+      template: templates/review-comment
+    - type: slack
+      channel: code-reviews
+      template: templates/slack-notification
+
+error_handling:
+  retry:
+    max_attempts: 3
+    delay: 1000
+  notify_on_failure:
+    - tech-leads
+    - pr_author
