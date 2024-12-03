@@ -8,6 +8,13 @@ An editor that increases your productivity by 4x (4x increase, get it? 😉).
 > This is VERY MUCH in the early stages. Not suitable for production at all. But you can star ⭐ this repo and get notified when we post our first public release!
 > Or you can build it yourself, though it's not ready yet.
 
+
+## Vision 🎯
+
+I'm very frustaded with some editors feature gating a bunch of stuff in their own models, using your own APIs is pratically unusable. I know, I know. They also need to pay the bills, that's fair. But even paying having some errors in my screen and not being able to put my own API key...
+
+We'll, just complain won't solve anything. Let's build something better!
+
 ## Features ✨
 
 - **Automatic Context Generation** 🧠: Intelligently understands your codebase and provides relevant context for smarter coding assistance
@@ -15,12 +22,6 @@ An editor that increases your productivity by 4x (4x increase, get it? 😉).
 - **Git Based Workflow** 🔄: Seamless integration with Git for efficient version control and collaboration
 - **Terminal Execution and Debugging** 💻: Built-in terminal support for running commands and debugging directly within the editor
 - **Pinned Prompts** 📌: AI convention-based system for consistent and customizable AI interactions
-
-## Vision 🎯
-
-I'm very frustaded with some editors feature gating a bunch of features of their own model. I know, they also need to pay the bills, but even paying having some errors in my screen and not being able to put my own API key.
-
-We'll, just complain won't solve anything. Let's build something better!
 
 
 ## Roadmap 🛣️
