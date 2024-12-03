@@ -10,10 +10,9 @@
     import Topbar from "@/lib/editor/Topbar.svelte";
     import BottomBar from "@/lib/editor/BottomBar.svelte";
     import { fileStore, type FileItem } from '../lib/stores/fileStore';
-    import { tooltip } from '@/lib/actions/tooltip';
-    import { Search } from "lucide-svelte";
-    import { File } from "lucide-svelte";
+
     import { setKeyboardContext } from '../lib/stores/keyboardStore';
+    import * as monaco from 'monaco-editor';
 
     // Tab state
     let tabs = [
@@ -48,30 +47,22 @@
         isAllCollapsed: false
     };
 
-    function updateSidebarState(newState: Partial<SidebarState>) {
-        leftSidebarState = { ...leftSidebarState, ...newState };
-    }
-
     let rightSidebarCollapsed = false;
+    let isSourceControlActive = false;
+    let isExplorerActive = true;
+    let showCommandPalette = false;
+    let showFileFinder = false;
 
     // Sidebar widths
     let leftSidebarWidth = 300;
     let rightSidebarWidth = 300;
 
     // Source control state
-    let modifiedFilesCount = 2; // This would be dynamically updated based on git status
+    let modifiedFilesCount = 2;
 
-    function setActiveTab(id: number) {
-        tabs = tabs.map((tab) => ({ ...tab, active: tab.id === id }));
-    }
-
-    function closeTab(id: number) {
-        const newTabs = tabs.filter((tab) => tab.id !== id);
-        if (newTabs.length > 0 && !newTabs.some((tab) => tab.active)) {
-            newTabs[0].active = true;
-        }
-        tabs = newTabs;
-    }
+    // Monaco editor instance
+    let editor: monaco.editor.IStandaloneCodeEditor;
+    let editorContainer: HTMLElement;
 
     const editorContent = `
 import React, { useState, useEffect } from 'react';
@@ -97,17 +88,47 @@ function Counter() {
 export default Counter;
   `.trim();
 
-    const WORKSPACE_PATH = '/home/nathanael/Documents/Trabalhos/Sideprojects/EditAI';
+    function setActiveTab(id: number) {
+        tabs = tabs.map((tab) => ({ ...tab, active: tab.id === id }));
+    }
 
-    let isLeftSidebarCollapsed = true;
-    let isRightSidebarCollapsed = false;
-    let isSourceControlActive = false;
-    let isExplorerActive = true;
-    let showCommandPalette = false;
-    let showFileFinder = false;
+    function closeTab(id: number) {
+        const newTabs = tabs.filter((tab) => tab.id !== id);
+        if (newTabs.length > 0 && !newTabs.some((tab) => tab.active)) {
+            newTabs[0].active = true;
+        }
+        tabs = newTabs;
+    }
+
+    function initMonaco() {
+        if (editorContainer && !editor) {
+            editor = monaco.editor.create(editorContainer, {
+                value: editorContent,
+                language: 'typescript',
+                theme: 'vs-dark',
+                automaticLayout: true,
+                minimap: {
+                    enabled: true
+                },
+                fontSize: 14,
+                lineNumbers: 'on',
+                roundedSelection: false,
+                scrollBeyondLastLine: false,
+                readOnly: false,
+                cursorStyle: 'line',
+                tabSize: 2
+            });
+        }
+    }
+
+    function handleResize() {
+        editor?.layout();
+    }
 
     onMount(() => {
         setKeyboardContext('editor');
+        initMonaco();
+
         // For now, let's add some example files
         const fileItems: FileItem[] = [
             {
@@ -131,18 +152,20 @@ export default Counter;
     });
 
     onDestroy(() => {
+        editor?.dispose();
         setKeyboardContext('global');
     });
 </script>
 
 <div class="flex flex-col h-screen bg-gray-900 text-gray-300">
     <Topbar 
-        bind:isLeftSidebarCollapsed
-        bind:isRightSidebarCollapsed
+        bind:isLeftSidebarCollapsed={leftSidebarState.collapsed}
+        bind:isRightSidebarCollapsed={rightSidebarCollapsed}
         bind:isSourceControlActive
         bind:isExplorerActive
-        onToggleLeftSidebar={() => isLeftSidebarCollapsed = !isLeftSidebarCollapsed}
-        onToggleRightSidebar={() => isRightSidebarCollapsed = !isRightSidebarCollapsed}
+        {modifiedFilesCount}
+        onToggleLeftSidebar={() => leftSidebarState.collapsed = !leftSidebarState.collapsed}
+        onToggleRightSidebar={() => rightSidebarCollapsed = !rightSidebarCollapsed}
         onToggleSourceControl={() => isSourceControlActive = !isSourceControlActive}
         onToggleExplorer={() => isExplorerActive = !isExplorerActive}
         showCommandPalette={() => showCommandPalette = true}
@@ -150,14 +173,17 @@ export default Counter;
     />
     
     <div class="flex flex-1 overflow-hidden">
-        {#if !isLeftSidebarCollapsed}
+        {#if !leftSidebarState.collapsed}
             <div style="width: {leftSidebarWidth}px" class="flex-shrink-0">
                 <LeftSidebar state={leftSidebarState} />
             </div>
             <ResizeHandle 
                 side="left" 
                 currentWidth={leftSidebarWidth}
-                onResize={(width) => leftSidebarWidth = width} 
+                onResize={(width) => {
+                    leftSidebarWidth = width;
+                    handleResize();
+                }}
             />
         {/if}
         
@@ -184,21 +210,20 @@ export default Counter;
                 </div>
             </div>
             
-            <div class="flex-1 overflow-auto p-4 bg-gray-950">
-                <pre class="font-mono text-sm">
-                    <code>{editorContent}</code>
-                </pre>
-            </div>
+            <div class="flex-1 overflow-hidden" bind:this={editorContainer} />
         </main>
         
-        {#if !isRightSidebarCollapsed}
+        {#if !rightSidebarCollapsed}
             <ResizeHandle 
                 side="right" 
                 currentWidth={rightSidebarWidth}
-                onResize={(width) => rightSidebarWidth = width} 
+                onResize={(width) => {
+                    rightSidebarWidth = width;
+                    handleResize();
+                }}
             />
             <div style="width: {rightSidebarWidth}px" class="flex-shrink-0">
-                <RightSidebar collapsed={isRightSidebarCollapsed} />
+                <RightSidebar collapsed={rightSidebarCollapsed} />
             </div>
         {/if}
     </div>
