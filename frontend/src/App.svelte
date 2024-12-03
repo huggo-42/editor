@@ -1,79 +1,99 @@
-<script>
-  import logo from './assets/images/logo-universal.png'
-  import {Greet} from '../wailsjs/go/main/App.js'
+<script lang="ts">
+  import "./app.css";
+  import { onMount } from "svelte";
+  import Router, { push } from "svelte-spa-router";
+  import Welcome from "./routes/Welcome.svelte";
+  import Editor from "./routes/Editor.svelte";
+  import Configs from "./routes/Configs.svelte";
+  import CommandPalette from "./lib/components/CommandPalette.svelte";
+  import FileFinder from "./lib/components/FileFinder.svelte";
+  import KeyboardManager from "./lib/components/KeyboardManager.svelte";
+  import { registerCommand } from "./lib/stores/keyboardStore";
+  import type { FileItem } from "./lib/stores/fileStore";
 
-  let resultText = "Please enter your name below 👇"
-  let name
+  const routes = {
+    "/": Welcome,
+    "/editor": Editor,
+    "/configs": Configs,
+  };
 
-  function greet() {
-    Greet(name).then(result => resultText = result)
+  let showCommandPalette = false;
+  let showFileFinder = false;
+
+  function handleKeydown(event: KeyboardEvent) {
+    // Handle Ctrl+Shift+P or Cmd+Shift+P (for Mac)
+    if (
+      (event.ctrlKey || event.metaKey) &&
+      event.shiftKey &&
+      event.key.toLowerCase() === "p"
+    ) {
+      event.preventDefault();
+      showCommandPalette = true;
+    }
+    // Handle Ctrl+P or Cmd+P (for Mac)
+    else if (
+      (event.ctrlKey || event.metaKey) &&
+      !event.shiftKey &&
+      event.key.toLowerCase() === "p"
+    ) {
+      event.preventDefault();
+      showFileFinder = true;
+    }
+    // Handle Escape key
+    if (event.key === "Escape" && (showCommandPalette || showFileFinder)) {
+      event.preventDefault();
+      showCommandPalette = false;
+      showFileFinder = false;
+    }
   }
+
+  function handleFileSelect(event: CustomEvent<FileItem>) {
+    const file = event.detail;
+    // TODO: Open the file in the editor
+    console.log("Opening file:", file.path);
+    showFileFinder = false;
+  }
+
+  // Register keyboard commands
+  registerCommand(
+    "command.showCommandPalette",
+    () => (showCommandPalette = true),
+  );
+  registerCommand("file.showFileFinder", () => (showFileFinder = true));
+  registerCommand("modal.close", () => {
+    showCommandPalette = false;
+    showFileFinder = false;
+  });
+
+  // Register navigation commands
+  registerCommand("navigation.goToEditor", () => push("/editor"));
+  registerCommand("navigation.goToSettings", () => push("/configs"));
+  registerCommand("view.toggleLeftSidebar", () => {
+    isLeftSidebarCollapsed = !isLeftSidebarCollapsed;
+  });
+  registerCommand("view.toggleRightSidebar", () => {
+    isRightSidebarCollapsed = !isRightSidebarCollapsed;
+  });
+
+  onMount(() => {
+    window.addEventListener("keydown", handleKeydown);
+    return () => window.removeEventListener("keydown", handleKeydown);
+  });
 </script>
 
-<main>
-  <img alt="Wails logo" id="logo" src="{logo}">
-  <div class="result" id="result">{resultText}</div>
-  <div class="input-box" id="input">
-    <input autocomplete="off" bind:value={name} class="input" id="name" type="text"/>
-    <button class="btn" on:click={greet}>Greet</button>
-  </div>
+<main class="h-screen">
+  <Router {routes} />
+  <CommandPalette
+    bind:show={showCommandPalette}
+    on:close={() => (showCommandPalette = false)}
+  />
+  <FileFinder
+    bind:show={showFileFinder}
+    on:close={() => (showFileFinder = false)}
+    on:select={handleFileSelect}
+  />
+  <KeyboardManager />
 </main>
 
 <style>
-
-  #logo {
-    display: block;
-    width: 50%;
-    height: 50%;
-    margin: auto;
-    padding: 10% 0 0;
-    background-position: center;
-    background-repeat: no-repeat;
-    background-size: 100% 100%;
-    background-origin: content-box;
-  }
-
-  .result {
-    height: 20px;
-    line-height: 20px;
-    margin: 1.5rem auto;
-  }
-
-  .input-box .btn {
-    width: 60px;
-    height: 30px;
-    line-height: 30px;
-    border-radius: 3px;
-    border: none;
-    margin: 0 0 0 20px;
-    padding: 0 8px;
-    cursor: pointer;
-  }
-
-  .input-box .btn:hover {
-    background-image: linear-gradient(to top, #cfd9df 0%, #e2ebf0 100%);
-    color: #333333;
-  }
-
-  .input-box .input {
-    border: none;
-    border-radius: 3px;
-    outline: none;
-    height: 30px;
-    line-height: 30px;
-    padding: 0 10px;
-    background-color: rgba(240, 240, 240, 1);
-    -webkit-font-smoothing: antialiased;
-  }
-
-  .input-box .input:hover {
-    border: none;
-    background-color: rgba(255, 255, 255, 1);
-  }
-
-  .input-box .input:focus {
-    border: none;
-    background-color: rgba(255, 255, 255, 1);
-  }
-
 </style>
