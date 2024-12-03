@@ -6,7 +6,7 @@
         Folder,
         FileIcon,
         RefreshCw,
-        ChevronsDown,
+        ChevronsUp,
         Plus,
         Files,
         Check,
@@ -135,6 +135,10 @@
             expanded: false,
             children: item.children?.map(child => ({ ...child, expanded: false }))
         }));
+        // Reset isAllCollapsed after collapsing to allow re-expanding
+        setTimeout(() => {
+            isAllCollapsed = false;
+        }, 0);
     }
 
     function setActiveSection(section: 'files' | 'git') {
@@ -207,7 +211,7 @@
                             on:click={collapseAll}
                             title="Collapse All"
                         >
-                            <ChevronsDown size={16} />
+                            <ChevronsUp size={16} />
                         </button>
                         <button
                             class="p-1 hover:bg-gray-800 rounded"
