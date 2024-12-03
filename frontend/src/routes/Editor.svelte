@@ -2,21 +2,46 @@
     import { X } from "lucide-svelte";
     import type { Tab } from "@/types/editor.types";
     import type { SidebarState } from "@/types/ui.types";
+    import type { FileNode } from "@/types/file.types";
     import LeftSidebar from "@/lib/editor/LeftSidebar.svelte";
     import RightSidebar from "@/lib/editor/RightSidebar.svelte";
     import Topbar from "@/lib/editor/Topbar.svelte";
     import BottomBar from "@/lib/editor/BottomBar.svelte";
 
+    // Tab state
     let tabs = [
         { id: 1, name: "App.tsx", active: true },
         { id: 2, name: "LeftSidebar.tsx", active: false },
         { id: 3, name: "Editor.tsx", active: false },
     ] satisfies Tab[];
 
-    let sidebarState: SidebarState = {
+    // Initial file tree
+    const initialFileTree: FileNode[] = [
+        {
+            id: '1',
+            name: 'src',
+            type: 'folder',
+            path: '/src',
+            expanded: true,
+            children: [
+                { id: '2', name: 'lib', type: 'folder', path: '/src/lib', children: [] },
+                { id: '3', name: 'routes', type: 'folder', path: '/src/routes', children: [] },
+                { id: '4', name: 'App.tsx', type: 'file', path: '/src/App.tsx' },
+                { id: '5', name: 'main.ts', type: 'file', path: '/src/main.ts' },
+            ]
+        },
+        { id: '6', name: 'package.json', type: 'file', path: '/package.json' }
+    ];
+
+    // Sidebar states
+    let leftSidebarState: SidebarState = {
         collapsed: false,
-        selectedTab: "files"
+        activeSection: 'files',
+        fileTree: initialFileTree,
+        isAllCollapsed: false
     };
+
+    let rightSidebarCollapsed = false;
 
     function setActiveTab(id: number) {
         tabs = tabs.map((tab) => ({ ...tab, active: tab.id === id }));
@@ -57,14 +82,14 @@ export default Counter;
 
 <div class="flex flex-col h-screen bg-gray-900 text-gray-300">
     <Topbar 
-        isLeftSidebarCollapsed={sidebarState.collapsed} 
-        isRightSidebarCollapsed={false} 
-        onToggleLeftSidebar={() => (sidebarState.collapsed = !sidebarState.collapsed)} 
-        onToggleRightSidebar={() => {}}
+        isLeftSidebarCollapsed={leftSidebarState.collapsed} 
+        isRightSidebarCollapsed={rightSidebarCollapsed} 
+        onToggleLeftSidebar={() => (leftSidebarState.collapsed = !leftSidebarState.collapsed)} 
+        onToggleRightSidebar={() => (rightSidebarCollapsed = !rightSidebarCollapsed)}
     />
     
     <div class="flex flex-1 overflow-hidden">
-        <LeftSidebar state={sidebarState} />
+        <LeftSidebar state={leftSidebarState} />
         
         <main class="flex-1 flex flex-col min-w-0 max-w-full">
             <div class="flex items-center border-b border-gray-800 bg-gray-900">
@@ -96,7 +121,7 @@ export default Counter;
             </div>
         </main>
         
-        <RightSidebar collapsed={false} />
+        <RightSidebar collapsed={rightSidebarCollapsed} />
     </div>
     
     <BottomBar />
