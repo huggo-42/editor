@@ -9,6 +9,11 @@
         ChevronsDown,
         Plus,
         Files,
+        Check,
+        MoreVertical,
+        Undo,
+        GitCommit,
+        Plus as PlusCircle
     } from 'lucide-svelte';
     import ContextMenu from './ContextMenu.svelte';
     import FileTreeItem from './FileTreeItem.svelte';
@@ -58,6 +63,8 @@
     let fileTree = initialFileTree;
     let isAllCollapsed = false;
     let activeSection: 'files' | 'git' = 'files';
+    let commitMessage = '';
+    let showSourceControlActions = false;
 
     function handleContextMenu(e: MouseEvent, item: FileNode) {
         e.preventDefault();
@@ -102,6 +109,27 @@
             state.collapsed = false;
         }
         activeSection = section;
+    }
+
+    function handleCommit(amend = false) {
+        // Handle commit logic
+        console.log('Committing with message:', commitMessage, 'amend:', amend);
+        commitMessage = '';
+    }
+
+    function handleStageAll() {
+        // Handle stage all files
+        console.log('Staging all files');
+    }
+
+    function handleUnstageAll() {
+        // Handle unstage all files
+        console.log('Unstaging all files');
+    }
+
+    function handleDiscard() {
+        // Handle discard changes
+        console.log('Discarding changes');
     }
 
     $: modifiedFilesCount = gitStatus.length;
@@ -191,27 +219,120 @@
                     <div class="flex items-center space-x-1">
                         <button
                             class="p-1 hover:bg-gray-800 rounded"
+                            title="Stage All Changes"
+                            on:click={handleStageAll}
+                        >
+                            <Plus size={16} />
+                        </button>
+                        <button
+                            class="p-1 hover:bg-gray-800 rounded"
                             title="Refresh"
                         >
                             <RefreshCw size={16} />
                         </button>
+                        <div class="relative">
+                            <button
+                                class="p-1 hover:bg-gray-800 rounded"
+                                title="More Actions"
+                                on:click={() => showSourceControlActions = !showSourceControlActions}
+                            >
+                                <MoreVertical size={16} />
+                            </button>
+                            {#if showSourceControlActions}
+                                <div 
+                                    class="absolute right-0 mt-1 py-1 w-48 bg-gray-800 rounded-md shadow-lg z-50"
+                                    on:mouseleave={() => showSourceControlActions = false}
+                                >
+                                    <button
+                                        class="w-full px-4 py-2 text-sm text-left text-gray-300 hover:bg-gray-700 flex items-center"
+                                        on:click={() => {
+                                            handleStageAll();
+                                            showSourceControlActions = false;
+                                        }}
+                                    >
+                                        <Plus size={14} class="mr-2" />
+                                        Stage All Changes
+                                    </button>
+                                    <button
+                                        class="w-full px-4 py-2 text-sm text-left text-gray-300 hover:bg-gray-700 flex items-center"
+                                        on:click={() => {
+                                            handleUnstageAll();
+                                            showSourceControlActions = false;
+                                        }}
+                                    >
+                                        <Undo size={14} class="mr-2" />
+                                        Unstage All Changes
+                                    </button>
+                                    <button
+                                        class="w-full px-4 py-2 text-sm text-left text-gray-300 hover:bg-gray-700 flex items-center"
+                                        on:click={() => {
+                                            handleDiscard();
+                                            showSourceControlActions = false;
+                                        }}
+                                    >
+                                        <Undo size={14} class="mr-2" />
+                                        Discard All Changes
+                                    </button>
+                                </div>
+                            {/if}
+                        </div>
                     </div>
                 </div>
 
-                <div class="flex-1 overflow-auto">
-                    <div class="p-2">
+                <div class="flex-1 overflow-auto flex flex-col">
+                    <div class="p-2 flex-1">
                         <div class="mb-4">
                             <div class="flex items-center text-sm text-gray-500 mb-1">
                                 <span>Changes ({modifiedFilesCount})</span>
                             </div>
                             <div class="pl-4">
                                 {#each gitStatus as item}
-                                    <div class="flex items-center text-sm py-1">
+                                    <div class="flex items-center text-sm py-1 group">
                                         <span class="w-2 h-2 rounded-full mr-2 {item.status === 'modified' ? 'bg-blue-400' : 'bg-green-400'}" />
-                                        <span class="text-gray-300">{item.file}</span>
+                                        <span class="text-gray-300 flex-1">{item.file}</span>
+                                        <div class="hidden group-hover:flex items-center space-x-1">
+                                            <button
+                                                class="p-1 hover:bg-gray-800 rounded opacity-60 hover:opacity-100"
+                                                title="Stage Changes"
+                                            >
+                                                <Plus size={14} />
+                                            </button>
+                                            <button
+                                                class="p-1 hover:bg-gray-800 rounded opacity-60 hover:opacity-100"
+                                                title="Discard Changes"
+                                            >
+                                                <Undo size={14} />
+                                            </button>
+                                        </div>
                                     </div>
                                 {/each}
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- Commit Section -->
+                    <div class="p-2 border-t border-gray-800">
+                        <textarea
+                            bind:value={commitMessage}
+                            placeholder="Message (⌘Enter to commit)"
+                            class="w-full h-20 bg-gray-800 text-gray-300 text-sm p-2 rounded mb-2 resize-none focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        ></textarea>
+                        <div class="flex space-x-2">
+                            <button
+                                class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm flex items-center justify-center"
+                                on:click={() => handleCommit(false)}
+                                disabled={!commitMessage}
+                            >
+                                <GitCommit size={14} class="mr-1" />
+                                Commit
+                            </button>
+                            <button
+                                class="px-3 py-1 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded text-sm"
+                                on:click={() => handleCommit(true)}
+                                disabled={!commitMessage}
+                            >
+                                Amend
+                            </button>
                         </div>
                     </div>
                 </div>
