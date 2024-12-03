@@ -13,7 +13,10 @@
         MoreVertical,
         Undo,
         GitCommit,
-        Plus as PlusCircle
+        Plus as PlusCircle,
+        ChevronDown,
+        ChevronRight,
+        Clock
     } from 'lucide-svelte';
     import ContextMenu from './ContextMenu.svelte';
     import FileTreeItem from './FileTreeItem.svelte';
@@ -56,8 +59,8 @@
     ];
 
     const gitStatus: GitStatusItem[] = [
-        { status: 'modified', file: 'src/App.tsx' },
-        { status: 'new', file: 'src/LeftSidebar.tsx' }
+        { status: 'modified', file: 'src/App.tsx', staged: true },
+        { status: 'new', file: 'src/LeftSidebar.tsx', staged: false }
     ];
 
     let fileTree = initialFileTree;
@@ -65,6 +68,36 @@
     let activeSection: 'files' | 'git' = 'files';
     let commitMessage = '';
     let showSourceControlActions = false;
+    let showCommits = false;
+
+    // Mock data for commits - replace with actual git log data
+    const recentCommits = [
+        {
+            hash: 'abc1234',
+            message: 'feat: Add source control panel',
+            author: 'John Doe',
+            date: '2 hours ago',
+            files: ['src/lib/editor/LeftSidebar.svelte', 'src/lib/editor/Editor.svelte']
+        },
+        {
+            hash: 'def5678',
+            message: 'fix: Resolve sidebar collapse issues',
+            author: 'Jane Smith',
+            date: '5 hours ago',
+            files: ['src/lib/editor/LeftSidebar.svelte']
+        },
+        {
+            hash: 'ghi9012',
+            message: 'chore: Update dependencies',
+            author: 'John Doe',
+            date: '1 day ago',
+            files: ['package.json', 'yarn.lock']
+        }
+    ];
+
+    // Separate staged and unstaged changes
+    $: stagedChanges = gitStatus.filter(item => item.staged);
+    $: unstagedChanges = gitStatus.filter(item => !item.staged);
 
     function handleContextMenu(e: MouseEvent, item: FileNode) {
         e.preventDefault();
@@ -281,12 +314,38 @@
 
                 <div class="flex-1 overflow-auto flex flex-col">
                     <div class="p-2 flex-1">
+                        <!-- Staged Changes -->
+                        {#if stagedChanges.length > 0}
+                            <div class="mb-4">
+                                <div class="flex items-center text-sm text-gray-500 mb-1">
+                                    <span>Staged Changes ({stagedChanges.length})</span>
+                                </div>
+                                <div class="pl-4">
+                                    {#each stagedChanges as item}
+                                        <div class="flex items-center text-sm py-1 group">
+                                            <span class="w-2 h-2 rounded-full mr-2 {item.status === 'modified' ? 'bg-blue-400' : 'bg-green-400'}" />
+                                            <span class="text-gray-300 flex-1">{item.file}</span>
+                                            <div class="hidden group-hover:flex items-center space-x-1">
+                                                <button
+                                                    class="p-1 hover:bg-gray-800 rounded opacity-60 hover:opacity-100"
+                                                    title="Unstage Changes"
+                                                >
+                                                    <Undo size={14} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    {/each}
+                                </div>
+                            </div>
+                        {/if}
+
+                        <!-- Unstaged Changes -->
                         <div class="mb-4">
                             <div class="flex items-center text-sm text-gray-500 mb-1">
-                                <span>Changes ({modifiedFilesCount})</span>
+                                <span>Changes ({unstagedChanges.length})</span>
                             </div>
                             <div class="pl-4">
-                                {#each gitStatus as item}
+                                {#each unstagedChanges as item}
                                     <div class="flex items-center text-sm py-1 group">
                                         <span class="w-2 h-2 rounded-full mr-2 {item.status === 'modified' ? 'bg-blue-400' : 'bg-green-400'}" />
                                         <span class="text-gray-300 flex-1">{item.file}</span>
@@ -317,7 +376,7 @@
                             placeholder="Message (⌘Enter to commit)"
                             class="w-full h-20 bg-gray-800 text-gray-300 text-sm p-2 rounded mb-2 resize-none focus:outline-none focus:ring-1 focus:ring-blue-500"
                         ></textarea>
-                        <div class="flex space-x-2">
+                        <div class="flex space-x-2 mb-3">
                             <button
                                 class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm flex items-center justify-center"
                                 on:click={() => handleCommit(false)}
@@ -333,6 +392,42 @@
                             >
                                 Amend
                             </button>
+                        </div>
+
+                        <!-- Recent Commits Section -->
+                        <div class="border-t border-gray-800 pt-2">
+                            <button
+                                class="flex items-center text-sm text-gray-400 hover:text-gray-300 w-full"
+                                on:click={() => showCommits = !showCommits}
+                            >
+                                {#if showCommits}
+                                    <ChevronDown size={16} class="mr-1" />
+                                {:else}
+                                    <ChevronRight size={16} class="mr-1" />
+                                {/if}
+                                Recent Commits
+                            </button>
+                            {#if showCommits}
+                                <div class="mt-2">
+                                    {#each recentCommits as commit}
+                                        <div 
+                                            class="group flex items-start py-2 px-2 hover:bg-gray-800 rounded cursor-pointer text-sm"
+                                            title="Click to show details"
+                                        >
+                                            <Clock size={14} class="mt-1 mr-2 text-gray-500" />
+                                            <div class="flex-1">
+                                                <div class="text-gray-300">{commit.message}</div>
+                                                <div class="text-gray-500 text-xs mt-1">
+                                                    {commit.hash.substring(0, 7)} • {commit.author} • {commit.date}
+                                                </div>
+                                                <div class="hidden group-hover:block text-gray-500 text-xs mt-1">
+                                                    Modified files: {commit.files.join(', ')}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {/each}
+                                </div>
+                            {/if}
                         </div>
                     </div>
                 </div>
