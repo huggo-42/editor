@@ -32,6 +32,8 @@
         targetItem: null as FileNode | null
     };
 
+    let showMoreCommitOptions = false;
+
     const initialFileTree: FileNode[] = [
         {
             id: '1',
@@ -166,6 +168,19 @@
         console.log('Discarding changes');
     }
 
+    function handleMoreCommitOptions() {
+        // Handle more commit options
+        console.log('More commit options');
+    }
+
+    function handleStash() {
+        alert('Stash changes');
+    }
+
+    function handleAmend() {
+        console.log('Amend commit');
+    }
+
     $: modifiedFilesCount = gitStatus.length;
 </script>
 
@@ -248,11 +263,11 @@
                         </button>
                         {#if showSourceControlActions}
                             <div 
-                                class="absolute right-0 mt-1 py-1 w-48 bg-gray-800 rounded-md shadow-lg z-50"
+                                class="absolute right-0 mt-1 py-1 bg-gray-800 rounded shadow-lg z-50 border border-gray-700 w-48"
                                 on:mouseleave={() => showSourceControlActions = false}
                             >
                                 <button
-                                    class="w-full px-4 py-2 text-sm text-left text-gray-300 hover:bg-gray-700 flex items-center"
+                                    class="w-full px-3 py-1.5 text-sm text-left text-gray-300 hover:bg-gray-700 flex items-center"
                                     on:click={() => {
                                         handleStageAll();
                                         showSourceControlActions = false;
@@ -262,7 +277,7 @@
                                     Stage All Changes
                                 </button>
                                 <button
-                                    class="w-full px-4 py-2 text-sm text-left text-gray-300 hover:bg-gray-700 flex items-center"
+                                    class="w-full px-3 py-1.5 text-sm text-left text-gray-300 hover:bg-gray-700 flex items-center"
                                     on:click={() => {
                                         handleUnstageAll();
                                         showSourceControlActions = false;
@@ -272,7 +287,7 @@
                                     Unstage All Changes
                                 </button>
                                 <button
-                                    class="w-full px-4 py-2 text-sm text-left text-gray-300 hover:bg-gray-700 flex items-center"
+                                    class="w-full px-3 py-1.5 text-sm text-left text-gray-300 hover:bg-gray-700 flex items-center"
                                     on:click={() => {
                                         handleDiscard();
                                         showSourceControlActions = false;
@@ -354,29 +369,56 @@
                         bind:value={commitMessage}
                         placeholder="Message (⌘Enter to commit)"
                         class="w-full h-20 bg-gray-800 text-gray-300 text-sm p-2 rounded mb-2 resize-none focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    ></textarea>
-                    <div class="flex space-x-2 mb-3">
+                    />
+                    <div class="flex justify-between items-center relative">
+                        {#if showMoreCommitOptions}
+                            <div 
+                                class="absolute right-0 bottom-full mb-1 py-1 bg-gray-800 rounded shadow-lg z-50 border border-gray-700 w-48"
+                                on:mouseleave={() => showMoreCommitOptions = false}
+                            >
+                                <button
+                                    class="w-full px-3 py-1.5 text-sm text-left text-gray-300 hover:bg-gray-700 flex items-center"
+                                    on:click={() => {
+                                        handleAmend();
+                                        showMoreCommitOptions = false;
+                                    }}
+                                >
+                                    <GitCommit size={14} class="mr-2" />
+                                    Commit (Amend)
+                                </button>
+                                <button
+                                    class="w-full px-3 py-1.5 text-sm text-left text-gray-300 hover:bg-gray-700 flex items-center"
+                                    on:click={() => {
+                                        handleStash();
+                                        showMoreCommitOptions = false;
+                                    }}
+                                >
+                                    <Clock size={14} class="mr-2" />
+                                    Stash Changes
+                                </button>
+                            </div>
+                        {/if}
                         <button
-                            class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm flex items-center justify-center"
-                            on:click={() => handleCommit(false)}
-                            disabled={!commitMessage}
+                            class="flex items-center space-x-1 px-6 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={!commitMessage || stagedChanges.length === 0}
+                            on:click={handleCommit}
                         >
-                            <GitCommit size={14} class="mr-1" />
-                            Commit
+                            <GitCommit size={14} />
+                            <span class="text-sm">Commit</span>
                         </button>
                         <button
-                            class="px-3 py-1 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded text-sm"
-                            on:click={() => handleCommit(true)}
-                            disabled={!commitMessage}
+                            class="p-1 hover:bg-gray-800 rounded"
+                            on:click={() => showMoreCommitOptions = !showMoreCommitOptions}
+                            title="More Commit Options"
                         >
-                            Amend
+                            <MoreVertical size={16} />
                         </button>
                     </div>
 
                     <!-- Recent Commits Section -->
-                    <div class="border-t border-gray-800 pt-2">
+                    <div class="mt-2 border-t border-gray-800 pt-2">
                         <button
-                            class="flex items-center text-sm text-gray-400 hover:text-gray-300 w-full"
+                            class="flex items-center text-sm text-gray-400 hover:text-gray-300 w-full px-2 py-1 hover:bg-gray-800 rounded"
                             on:click={() => showCommits = !showCommits}
                         >
                             {#if showCommits}
@@ -387,20 +429,17 @@
                             Recent Commits
                         </button>
                         {#if showCommits}
-                            <div class="mt-2">
+                            <div class="mt-1">
                                 {#each recentCommits as commit}
                                     <div 
-                                        class="group flex items-start py-2 px-2 hover:bg-gray-800 rounded cursor-pointer text-sm"
+                                        class="group flex items-start py-1.5 px-2 hover:bg-gray-800 rounded cursor-pointer text-sm"
                                         title="Click to show details"
                                     >
-                                        <Clock size={14} class="mt-1 mr-2 text-gray-500" />
-                                        <div class="flex-1">
-                                            <div class="text-gray-300">{commit.message}</div>
-                                            <div class="text-gray-500 text-xs mt-1">
+                                        <Clock size={14} class="mt-1 mr-2 text-gray-500 flex-shrink-0" />
+                                        <div class="flex-1 min-w-0">
+                                            <div class="text-gray-300 truncate">{commit.message}</div>
+                                            <div class="text-gray-500 text-xs mt-0.5 truncate">
                                                 {commit.hash.substring(0, 7)} • {commit.author} • {commit.date}
-                                            </div>
-                                            <div class="hidden group-hover:block text-gray-500 text-xs mt-1">
-                                                Modified files: {commit.files.join(', ')}
                                             </div>
                                         </div>
                                     </div>
