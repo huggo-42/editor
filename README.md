@@ -76,6 +76,11 @@ Contributions are welcome! Please feel free to submit a Pull Request.]
 > With `Alt + J`, you can use "J" and "K" to move up and down. Yes, I'm a fellow vimmer 😎
 
 
+**Fuzzy finder**
+
+![screenshot-2024-12-03-11-27-56](https://github.com/user-attachments/assets/e18e7d38-aaf5-43e4-b5a9-6c1e932059eb)
+
+
 ## License
 
 I'm not sure yet. Some of the collaboration features will be probabily licensed under a commercial one when you pass a given amout of users. But we'll always offer a self-hosted version and you'll be always welcome to use your own model (aka, no more "resource_exhausted" errors).
