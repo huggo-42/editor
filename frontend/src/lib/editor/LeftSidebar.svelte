@@ -7,7 +7,8 @@
         FileIcon,
         RefreshCw,
         ChevronsDown,
-        Plus
+        Plus,
+        Files,
     } from 'lucide-svelte';
     import ContextMenu from './ContextMenu.svelte';
     import FileTreeItem from './FileTreeItem.svelte';
@@ -56,6 +57,7 @@
 
     let fileTree = initialFileTree;
     let isAllCollapsed = false;
+    let activeSection: 'files' | 'git' = 'files';
 
     function handleContextMenu(e: MouseEvent, item: FileNode) {
         e.preventDefault();
@@ -94,73 +96,127 @@
             children: item.children?.map(child => ({ ...child, expanded: false }))
         }));
     }
+
+    function setActiveSection(section: 'files' | 'git') {
+        if (state.collapsed) {
+            state.collapsed = false;
+        }
+        activeSection = section;
+    }
+
+    $: modifiedFilesCount = gitStatus.length;
 </script>
 
 <div class="h-full flex flex-col bg-gray-900 border-r border-gray-800 {state.collapsed ? 'w-12' : 'w-64'}">
-    <div class="flex items-center justify-between p-2 border-b border-gray-800">
-        <div class="flex items-center space-x-2">
-            {#if !state.collapsed}
-                <span class="text-sm font-medium">Explorer</span>
-            {/if}
+    <div class="flex flex-col h-full">
+        <!-- Sidebar Icons -->
+        <div class="flex flex-col items-center py-2 {state.collapsed ? 'space-y-4' : 'hidden'}">
+            <button
+                class="p-2 hover:bg-gray-800 rounded-sm relative {activeSection === 'files' ? 'bg-gray-800' : ''}"
+                on:click={() => setActiveSection('files')}
+                title="Explorer"
+            >
+                <Files size={20} />
+            </button>
+            <button
+                class="p-2 hover:bg-gray-800 rounded-sm relative {activeSection === 'git' ? 'bg-gray-800' : ''}"
+                on:click={() => setActiveSection('git')}
+                title="Source Control"
+            >
+                <GitBranch size={20} />
+                {#if modifiedFilesCount > 0}
+                    <div class="absolute top-0 right-0 -mt-1 -mr-1 bg-blue-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs">
+                        {modifiedFilesCount}
+                    </div>
+                {/if}
+            </button>
         </div>
+
+        <!-- Expanded View -->
         {#if !state.collapsed}
-            <div class="flex items-center space-x-1">
-                <button
-                    class="p-1 hover:bg-gray-800 rounded"
-                    on:click={collapseAll}
-                    title="Collapse All"
-                >
-                    <ChevronsDown size={16} />
-                </button>
-                <button
-                    class="p-1 hover:bg-gray-800 rounded"
-                    title="Refresh Explorer"
-                >
-                    <RefreshCw size={16} />
-                </button>
-            </div>
-        {/if}
-    </div>
-
-    <div class="flex-1 overflow-auto">
-        <div class="p-2">
-            <div class="mb-4">
-                <div class="flex items-center justify-between text-sm text-gray-500 mb-1">
-                    <span>FILES</span>
-                    <button
-                        class="p-1 hover:bg-gray-800 rounded"
-                        title="New File"
-                    >
-                        <Plus size={14} />
-                    </button>
-                </div>
-                {#each fileTree as item (item.id)}
-                    <FileTreeItem
-                        {item}
-                        onContextMenu={handleContextMenu}
-                        onRename={handleRename}
-                        isAllCollapsed={isAllCollapsed}
-                    />
-                {/each}
-            </div>
-
-            {#if !state.collapsed}
-                <div class="mb-4">
-                    <div class="flex items-center text-sm text-gray-500 mb-1">
-                        <GitBranch size={16} class="mr-1" />
-                        <span>SOURCE CONTROL</span>
+            <!-- Files Section -->
+            {#if activeSection === 'files'}
+                <div class="flex items-center justify-between p-2 border-b border-gray-800">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-sm font-medium">Explorer</span>
                     </div>
-                    <div class="pl-4">
-                        {#each gitStatus as item}
-                            <div class="flex items-center text-sm py-1">
-                                <span class="w-2 h-2 rounded-full mr-2 {item.status === 'modified' ? 'bg-blue-400' : 'bg-green-400'}" />
-                                <span class="text-gray-300">{item.file}</span>
+                    <div class="flex items-center space-x-1">
+                        <button
+                            class="p-1 hover:bg-gray-800 rounded"
+                            on:click={collapseAll}
+                            title="Collapse All"
+                        >
+                            <ChevronsDown size={16} />
+                        </button>
+                        <button
+                            class="p-1 hover:bg-gray-800 rounded"
+                            title="Refresh Explorer"
+                        >
+                            <RefreshCw size={16} />
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex-1 overflow-auto">
+                    <div class="p-2">
+                        <div class="mb-4">
+                            <div class="flex items-center justify-between text-sm text-gray-500 mb-1">
+                                <span>FILES</span>
+                                <button
+                                    class="p-1 hover:bg-gray-800 rounded"
+                                    title="New File"
+                                >
+                                    <Plus size={14} />
+                                </button>
                             </div>
-                        {/each}
+                            {#each fileTree as item (item.id)}
+                                <FileTreeItem
+                                    {item}
+                                    onContextMenu={handleContextMenu}
+                                    onRename={handleRename}
+                                    isAllCollapsed={isAllCollapsed}
+                                />
+                            {/each}
+                        </div>
                     </div>
                 </div>
             {/if}
-        </div>
+
+            <!-- Git Section -->
+            {#if activeSection === 'git'}
+                <div class="flex items-center justify-between p-2 border-b border-gray-800">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-sm font-medium">Source Control</span>
+                    </div>
+                    <div class="flex items-center space-x-1">
+                        <button
+                            class="p-1 hover:bg-gray-800 rounded"
+                            title="Refresh"
+                        >
+                            <RefreshCw size={16} />
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex-1 overflow-auto">
+                    <div class="p-2">
+                        <div class="mb-4">
+                            <div class="flex items-center text-sm text-gray-500 mb-1">
+                                <span>Changes ({modifiedFilesCount})</span>
+                            </div>
+                            <div class="pl-4">
+                                {#each gitStatus as item}
+                                    <div class="flex items-center text-sm py-1">
+                                        <span class="w-2 h-2 rounded-full mr-2 {item.status === 'modified' ? 'bg-blue-400' : 'bg-green-400'}" />
+                                        <span class="text-gray-300">{item.file}</span>
+                                    </div>
+                                {/each}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {/if}
+        {/if}
     </div>
 </div>
 
