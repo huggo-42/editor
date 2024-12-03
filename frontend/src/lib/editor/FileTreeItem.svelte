@@ -50,16 +50,27 @@
 </script>
 
 <div class="relative" style="padding-left: {depth * 1.5}rem">
-    <button
-        class="flex items-center py-1 px-2 hover:bg-gray-800 cursor-pointer group"
+    <div
+        class="flex items-center py-1 px-2 hover:bg-gray-800 cursor-pointer group rounded-sm mx-1 hover:rounded-md"
         on:click={toggleFolder}
         on:contextmenu|preventDefault={(e) => onContextMenu(e, item)}
+        on:keydown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                toggleFolder(e);
+            }
+        }}
+        role="button"
+        tabindex="0"
+        aria-expanded={item.type === 'folder' ? isOpen : undefined}
+        aria-label={`${item.name} ${item.type}`}
     >
-        <span class="mr-1">
+        <span class="mr-1 w-[22px] flex justify-center">
             {#if item.type === "folder"}
                 <button
-                    class="p-0.5 hover:bg-gray-700 rounded"
+                    class="p-0.5 rounded"
                     on:click|stopPropagation={toggleFolder}
+                    aria-label={`${isOpen ? 'Collapse' : 'Expand'} ${item.name} folder`}
                 >
                     {#if isOpen}
                         <ChevronDown size={16} />
@@ -68,11 +79,13 @@
                     {/if}
                 </button>
             {:else}
-                <span class="w-[26px]" />
+                <span class="invisible">
+                    <ChevronRight size={16} />
+                </span>
             {/if}
         </span>
 
-        <span class="mr-1">
+        <span class="mr-1 {item.type === 'folder' ? 'text-sky-400' : ''} w-[20px] flex justify-center">
             {#if item.type === "folder"}
                 {#if isOpen}
                     <FolderOpen size={16} />
@@ -97,20 +110,18 @@
         {:else}
             <span class="flex-grow truncate">{item.name}</span>
         {/if}
-        </button>
+    </div>
 
-    {#if item.type === "folder" && isOpen}
-        <div class="file-tree-children">
-            {#each item.children || [] as child (child.id)}
-                <svelte:self
-                    item={child}
-                    depth={depth + 1}
-                    {onContextMenu}
-                    {onRename}
-                    {isAllCollapsed}
-                />
-            {/each}
-        </div>
+    {#if item.type === "folder" && isOpen && item.children}
+        {#each item.children as child (child.id)}
+            <svelte:self
+                item={child}
+                depth={depth + 1}
+                {onContextMenu}
+                {onRename}
+                {isAllCollapsed}
+            />
+        {/each}
     {/if}
 </div>
 
