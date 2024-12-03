@@ -3,6 +3,9 @@
     import type { Tab } from "@/types/editor.types";
     import type { SidebarState } from "@/types/ui.types";
     import LeftSidebar from "@/lib/editor/LeftSidebar.svelte";
+    import RightSidebar from "@/lib/editor/RightSidebar.svelte";
+    import Topbar from "@/lib/editor/Topbar.svelte";
+    import BottomBar from "@/lib/editor/BottomBar.svelte";
 
     let tabs = [
         { id: 1, name: "App.tsx", active: true },
@@ -52,32 +55,49 @@ export default Counter;
   `.trim();
 </script>
 
-<div>
-    <LeftSidebar state={sidebarState} />
-    <div class="flex flex-col h-full">
-        <div class="flex bg-slate-800 text-sm">
-            {#each tabs as tab (tab.id)}
-                <button
-                    class="flex items-center px-4 py-2 border-r border-gray-800 cursor-pointer {tab.active
-                        ? 'bg-gray-900'
-                        : 'bg-gray-800 hover:bg-gray-700'} transition-colors duration-200"
-                    on:click={() => setActiveTab(tab.id)}
-                >
-                    <span>{tab.name}</span>
-                    <button
-                        on:click|stopPropagation={() => closeTab(tab.id)}
-                        class="ml-2 text-gray-400 hover:text-gray-100 transition-colors duration-200"
-                        aria-label="Close {tab.name}"
-                    >
-                        <X size={14} />
-                    </button>
-                </button>
-            {/each}
-        </div>
-        <div class="flex-grow bg-gray-950 p-4 overflow-auto">
-            <pre class="font-mono text-sm text-gray-300">
-            <code>{editorContent}</code>
-        </pre>
-        </div>
+<div class="flex flex-col h-screen bg-gray-900 text-gray-300">
+    <Topbar 
+        isLeftSidebarCollapsed={sidebarState.collapsed} 
+        isRightSidebarCollapsed={false} 
+        onToggleLeftSidebar={() => (sidebarState.collapsed = !sidebarState.collapsed)} 
+        onToggleRightSidebar={() => {}}
+    />
+    
+    <div class="flex flex-1 overflow-hidden">
+        <LeftSidebar state={sidebarState} />
+        
+        <main class="flex-1 flex flex-col min-w-0 max-w-full">
+            <div class="flex items-center border-b border-gray-800 bg-gray-900">
+                <div class="flex overflow-x-auto">
+                    {#each tabs as tab (tab.id)}
+                        <button
+                            class="flex items-center px-4 py-2 border-r border-gray-800 cursor-pointer {tab.active
+                                ? 'bg-gray-900'
+                                : 'bg-gray-800 hover:bg-gray-700'} transition-colors duration-200"
+                            on:click={() => setActiveTab(tab.id)}
+                        >
+                            <span>{tab.name}</span>
+                            <button
+                                on:click|stopPropagation={() => closeTab(tab.id)}
+                                class="ml-2 text-gray-400 hover:text-gray-100 transition-colors duration-200"
+                                aria-label="Close {tab.name}"
+                            >
+                                <X size={14} />
+                            </button>
+                        </button>
+                    {/each}
+                </div>
+            </div>
+            
+            <div class="flex-1 overflow-auto p-4 bg-gray-950">
+                <pre class="font-mono text-sm">
+                    <code>{editorContent}</code>
+                </pre>
+            </div>
+        </main>
+        
+        <RightSidebar collapsed={false} />
     </div>
+    
+    <BottomBar />
 </div>

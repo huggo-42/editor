@@ -31,7 +31,7 @@
 </script>
 
 {#if !collapsed}
-  <div class="bg-gray-900 h-full w-full flex flex-col overflow-hidden">
+  <div class="bg-gray-900 h-full w-64 flex flex-col overflow-hidden border-l border-gray-800">
     <div class="p-4 border-b border-gray-800">
       <h2 class="text-lg font-semibold mb-2">AI Assistant</h2>
     </div>
