@@ -322,12 +322,12 @@
                                 </div>
                                 <div class="pl-4">
                                     {#each stagedChanges as item}
-                                        <div class="flex items-center text-sm py-1 group">
-                                            <span class="w-2 h-2 rounded-full mr-2 {item.status === 'modified' ? 'bg-blue-400' : 'bg-green-400'}" />
-                                            <span class="text-gray-300 flex-1">{item.file}</span>
-                                            <div class="hidden group-hover:flex items-center space-x-1">
+                                        <div class="flex items-center text-sm py-1 group hover:bg-gray-800/50 rounded px-1">
+                                            <span class="w-2 h-2 rounded-full mr-2 flex-shrink-0 {item.status === 'modified' ? 'bg-blue-400' : 'bg-green-400'}" />
+                                            <span class="text-gray-300 truncate flex-1" title={item.file}>{item.file}</span>
+                                            <div class="flex items-center space-x-1 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                                 <button
-                                                    class="p-1 hover:bg-gray-800 rounded opacity-60 hover:opacity-100"
+                                                    class="p-1 hover:bg-gray-800 rounded"
                                                     title="Unstage Changes"
                                                 >
                                                     <Undo size={14} />
@@ -346,18 +346,18 @@
                             </div>
                             <div class="pl-4">
                                 {#each unstagedChanges as item}
-                                    <div class="flex items-center text-sm py-1 group">
-                                        <span class="w-2 h-2 rounded-full mr-2 {item.status === 'modified' ? 'bg-blue-400' : 'bg-green-400'}" />
-                                        <span class="text-gray-300 flex-1">{item.file}</span>
-                                        <div class="hidden group-hover:flex items-center space-x-1">
+                                    <div class="flex items-center text-sm py-1 group hover:bg-gray-800/50 rounded px-1">
+                                        <span class="w-2 h-2 rounded-full mr-2 flex-shrink-0 {item.status === 'modified' ? 'bg-blue-400' : 'bg-green-400'}" />
+                                        <span class="text-gray-300 truncate flex-1" title={item.file}>{item.file}</span>
+                                        <div class="flex items-center space-x-1 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <button
-                                                class="p-1 hover:bg-gray-800 rounded opacity-60 hover:opacity-100"
+                                                class="p-1 hover:bg-gray-800 rounded"
                                                 title="Stage Changes"
                                             >
                                                 <Plus size={14} />
                                             </button>
                                             <button
-                                                class="p-1 hover:bg-gray-800 rounded opacity-60 hover:opacity-100"
+                                                class="p-1 hover:bg-gray-800 rounded"
                                                 title="Discard Changes"
                                             >
                                                 <Undo size={14} />
