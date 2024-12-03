@@ -21,6 +21,7 @@
     } from 'lucide-svelte';
     import ContextMenu from './ContextMenu.svelte';
     import FileTreeItem from './FileTreeItem.svelte';
+    import DropdownMenu from '../components/DropdownMenu.svelte';
     import type { FileNode, GitStatusItem, SidebarState } from '../../types';
 
     export let state: SidebarState;
@@ -256,48 +257,32 @@
                     <div class="relative">
                         <button
                             class="p-1 hover:bg-gray-800 rounded"
-                            title="More Actions"
                             on:click={() => showSourceControlActions = !showSourceControlActions}
+                            title="More Actions"
                         >
                             <MoreVertical size={16} />
                         </button>
-                        {#if showSourceControlActions}
-                            <div 
-                                class="absolute right-0 mt-1 py-1 bg-gray-800 rounded shadow-lg z-50 border border-gray-700 w-48"
-                                on:mouseleave={() => showSourceControlActions = false}
-                            >
-                                <button
-                                    class="w-full px-3 py-1.5 text-sm text-left text-gray-300 hover:bg-gray-700 flex items-center"
-                                    on:click={() => {
-                                        handleStageAll();
-                                        showSourceControlActions = false;
-                                    }}
-                                >
-                                    <Plus size={14} class="mr-2" />
-                                    Stage All Changes
-                                </button>
-                                <button
-                                    class="w-full px-3 py-1.5 text-sm text-left text-gray-300 hover:bg-gray-700 flex items-center"
-                                    on:click={() => {
-                                        handleUnstageAll();
-                                        showSourceControlActions = false;
-                                    }}
-                                >
-                                    <Undo size={14} class="mr-2" />
-                                    Unstage All Changes
-                                </button>
-                                <button
-                                    class="w-full px-3 py-1.5 text-sm text-left text-gray-300 hover:bg-gray-700 flex items-center"
-                                    on:click={() => {
-                                        handleDiscard();
-                                        showSourceControlActions = false;
-                                    }}
-                                >
-                                    <Trash2 size={14} class="mr-2" />
-                                    Discard All Changes
-                                </button>
-                            </div>
-                        {/if}
+                        <DropdownMenu
+                            show={showSourceControlActions}
+                            onClose={() => showSourceControlActions = false}
+                            items={[
+                                {
+                                    icon: Plus,
+                                    label: 'Stage All Changes',
+                                    onClick: handleStageAll
+                                },
+                                {
+                                    icon: Undo,
+                                    label: 'Unstage All Changes',
+                                    onClick: handleUnstageAll
+                                },
+                                {
+                                    icon: Trash2,
+                                    label: 'Discard All Changes',
+                                    onClick: handleDiscard
+                                }
+                            ]}
+                        />
                     </div>
                 </div>
             </div>
@@ -371,33 +356,6 @@
                         class="w-full h-20 bg-gray-800 text-gray-300 text-sm p-2 rounded mb-2 resize-none focus:outline-none focus:ring-1 focus:ring-blue-500"
                     />
                     <div class="flex justify-between items-center relative">
-                        {#if showMoreCommitOptions}
-                            <div 
-                                class="absolute right-0 bottom-full mb-1 py-1 bg-gray-800 rounded shadow-lg z-50 border border-gray-700 w-48"
-                                on:mouseleave={() => showMoreCommitOptions = false}
-                            >
-                                <button
-                                    class="w-full px-3 py-1.5 text-sm text-left text-gray-300 hover:bg-gray-700 flex items-center"
-                                    on:click={() => {
-                                        handleAmend();
-                                        showMoreCommitOptions = false;
-                                    }}
-                                >
-                                    <GitCommit size={14} class="mr-2" />
-                                    Commit (Amend)
-                                </button>
-                                <button
-                                    class="w-full px-3 py-1.5 text-sm text-left text-gray-300 hover:bg-gray-700 flex items-center"
-                                    on:click={() => {
-                                        handleStash();
-                                        showMoreCommitOptions = false;
-                                    }}
-                                >
-                                    <Clock size={14} class="mr-2" />
-                                    Stash Changes
-                                </button>
-                            </div>
-                        {/if}
                         <button
                             class="flex items-center space-x-1 px-6 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                             disabled={!commitMessage || stagedChanges.length === 0}
@@ -413,6 +371,23 @@
                         >
                             <MoreVertical size={16} />
                         </button>
+                        <DropdownMenu
+                            show={showMoreCommitOptions}
+                            onClose={() => showMoreCommitOptions = false}
+                            position="top"
+                            items={[
+                                {
+                                    icon: GitCommit,
+                                    label: 'Commit (Amend)',
+                                    onClick: handleAmend
+                                },
+                                {
+                                    icon: Clock,
+                                    label: 'Stash Changes',
+                                    onClick: handleStash
+                                }
+                            ]}
+                        />
                     </div>
 
                     <!-- Recent Commits Section -->
