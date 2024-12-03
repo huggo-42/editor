@@ -1,5 +1,9 @@
 <script lang="ts">
-  import { Send } from 'lucide-svelte';
+  import { Send, MoreVertical, Trash2, Settings } from 'lucide-svelte';
+  import Button from '../components/Button.svelte';
+  import Input from '../components/Input.svelte';
+  import Select from '../components/Select.svelte';
+  import DropdownMenu from '../components/DropdownMenu.svelte';
 
   export let collapsed: boolean;
 
@@ -14,6 +18,9 @@
   ];
 
   let newMessage = '';
+  let selectedModel = 'GPT-4';
+  let showMoreOptions = false;
+  const modelOptions = ['GPT-4', 'GPT-3.5-turbo', 'Codex', 'GPT-3', 'GPT-2', 'GPT-1'];
 
   function sendMessage() {
     if (newMessage.trim()) {
@@ -32,8 +39,44 @@
 
 {#if !collapsed}
   <div class="bg-gray-900 h-full w-full flex flex-col overflow-hidden border-l border-gray-800">
-    <div class="h-[35px] flex items-center px-4 border-b border-gray-800">
+    <div class="h-[35px] flex items-center justify-between px-4 border-b border-gray-800">
       <h2 class="font-medium">AI Assistant</h2>
+      <div class="flex items-center space-x-2">
+        <div class="w-40">
+          <Select
+            bind:value={selectedModel}
+            options={modelOptions}
+            variant="compact"
+          />
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          icon={MoreVertical}
+          title="More Options"
+          on:click={() => showMoreOptions = !showMoreOptions}
+        />
+        <DropdownMenu
+          show={showMoreOptions}
+          onClose={() => showMoreOptions = false}
+          position="bottom"
+          items={[
+            {
+              icon: Settings,
+              label: 'Settings',
+              onClick: () => {
+                // TODO: Implement settings dialog
+                console.log('Open settings');
+              }
+            },
+            {
+              icon: Trash2,
+              label: 'Clear Chat',
+              onClick: () => messages = []
+            }
+          ]}
+        />
+      </div>
     </div>
 
     <div class="flex-grow overflow-y-auto p-4">
@@ -47,27 +90,23 @@
     </div>
 
     <div class="p-4 border-t border-gray-800">
-      <select class="w-full bg-gray-800 text-gray-200 p-1 rounded-sm text-xs mb-2">
-        <option>GPT-4</option>
-        <option>GPT-3.5-turbo</option>
-        <option>Codex</option>
-      </select>
-
-      <div class="flex">
-        <input
-          type="text"
-          bind:value={newMessage}
-          on:keypress={handleKeyPress}
-          placeholder="Type your message..."
-          class="flex-grow bg-gray-800 text-gray-200 p-2 rounded-sm"
-        />
-        <button
+      <div class="flex items-start">
+        <div class="flex-grow mr-2">
+          <Input
+            variant="textarea"
+            bind:value={newMessage}
+            placeholder="Type your message..."
+            minRows={1}
+            maxRows={5}
+            onSubmit={sendMessage}
+          />
+        </div>
+        <Button
+          variant="secondary"
+          icon={Send}
           on:click={sendMessage}
-          class="bg-gray-700 hover:bg-gray-600 text-gray-100 p-2 rounded-sm transition-colors duration-200 ml-2"
-          aria-label="Send message"
-        >
-          <Send size={20} />
-        </button>
+          title="Send message"
+        />
       </div>
     </div>
   </div>

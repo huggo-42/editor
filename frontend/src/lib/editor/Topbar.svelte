@@ -1,5 +1,6 @@
 <script lang="ts">
   import { ChevronLeft, ChevronRight, Search, GitBranch, Files } from 'lucide-svelte';
+  import Input from '../components/Input.svelte';
 
   export let onToggleLeftSidebar: () => void;
   export let onToggleRightSidebar: () => void;
@@ -10,6 +11,8 @@
   export let isSourceControlActive: boolean;
   export let isExplorerActive: boolean;
   export let modifiedFilesCount: number = 0;
+
+  let searchQuery = '';
 </script>
 
 <div class="bg-gray-900 border-b border-gray-800 flex justify-between items-center px-4 py-2">
@@ -50,15 +53,16 @@
 
   <div class="flex-1 flex justify-center items-center">
     <div class="relative w-1/2 max-w-md">
-      <input
-        type="text"
-        placeholder="Search..."
-        class="w-full bg-gray-800 text-gray-200 rounded-full py-2 px-4 pl-10 focus:outline-none focus:ring-2 focus:ring-blue-500"
-      />
-      <Search
-        class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-        size={18}
-      />
+      <div class="relative">
+        <Input
+          bind:value={searchQuery}
+          placeholder="Search"
+          variant="text"
+        />
+        <div class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400">
+          <Search size={14} />
+        </div>
+      </div>
     </div>
   </div>
 
