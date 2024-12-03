@@ -10,6 +10,9 @@
     import Topbar from "@/lib/editor/Topbar.svelte";
     import BottomBar from "@/lib/editor/BottomBar.svelte";
     import { fileStore, type FileItem } from '../lib/stores/fileStore';
+    import { tooltip } from '@/lib/actions/tooltip';
+    import { Search } from "lucide-svelte";
+    import { File } from "lucide-svelte";
 
     // Tab state
     let tabs = [
@@ -95,6 +98,13 @@ export default Counter;
 
     const WORKSPACE_PATH = '/home/nathanael/Documents/Trabalhos/Sideprojects/EditAI';
 
+    let isLeftSidebarCollapsed = true;
+    let isRightSidebarCollapsed = false;
+    let isSourceControlActive = false;
+    let isExplorerActive = true;
+    let showCommandPalette = false;
+    let showFileFinder = false;
+
     onMount(async () => {
         // For now, let's add some example files
         const fileItems: FileItem[] = [
@@ -121,29 +131,20 @@ export default Counter;
 
 <div class="flex flex-col h-screen bg-gray-900 text-gray-300">
     <Topbar 
-        isLeftSidebarCollapsed={leftSidebarState.collapsed} 
-        isRightSidebarCollapsed={rightSidebarCollapsed} 
-        onToggleLeftSidebar={() => updateSidebarState({ collapsed: !leftSidebarState.collapsed })} 
-        onToggleRightSidebar={() => (rightSidebarCollapsed = !rightSidebarCollapsed)}
-        onToggleSourceControl={() => {
-            updateSidebarState({
-                activeSection: 'git',
-                collapsed: false
-            });
-        }}
-        onToggleExplorer={() => {
-            updateSidebarState({
-                activeSection: 'files',
-                collapsed: false
-            });
-        }}
-        isSourceControlActive={leftSidebarState.activeSection === 'git'}
-        isExplorerActive={leftSidebarState.activeSection === 'files'}
-        modifiedFilesCount={modifiedFilesCount}
+        bind:isLeftSidebarCollapsed
+        bind:isRightSidebarCollapsed
+        bind:isSourceControlActive
+        bind:isExplorerActive
+        onToggleLeftSidebar={() => isLeftSidebarCollapsed = !isLeftSidebarCollapsed}
+        onToggleRightSidebar={() => isRightSidebarCollapsed = !isRightSidebarCollapsed}
+        onToggleSourceControl={() => isSourceControlActive = !isSourceControlActive}
+        onToggleExplorer={() => isExplorerActive = !isExplorerActive}
+        showCommandPalette={() => showCommandPalette = true}
+        showFileFinder={() => showFileFinder = true}
     />
     
     <div class="flex flex-1 overflow-hidden">
-        {#if !leftSidebarState.collapsed}
+        {#if !isLeftSidebarCollapsed}
             <div style="width: {leftSidebarWidth}px" class="flex-shrink-0">
                 <LeftSidebar state={leftSidebarState} />
             </div>
@@ -184,14 +185,14 @@ export default Counter;
             </div>
         </main>
         
-        {#if !rightSidebarCollapsed}
+        {#if !isRightSidebarCollapsed}
             <ResizeHandle 
                 side="right" 
                 currentWidth={rightSidebarWidth}
                 onResize={(width) => rightSidebarWidth = width} 
             />
             <div style="width: {rightSidebarWidth}px" class="flex-shrink-0">
-                <RightSidebar collapsed={rightSidebarCollapsed} />
+                <RightSidebar collapsed={isRightSidebarCollapsed} />
             </div>
         {/if}
     </div>

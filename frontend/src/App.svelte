@@ -7,6 +7,8 @@
   import Configs from "./routes/Configs.svelte";
   import CommandPalette from './lib/components/CommandPalette.svelte';
   import FileFinder from './lib/components/FileFinder.svelte';
+  import KeyboardManager from './lib/components/KeyboardManager.svelte';
+  import { registerCommand } from './lib/stores/keyboardStore';
   import type { FileItem } from './lib/stores/fileStore';
 
   const routes = {
@@ -44,6 +46,14 @@
     showFileFinder = false;
   }
 
+  // Register keyboard commands
+  registerCommand('command.showCommandPalette', () => showCommandPalette = true);
+  registerCommand('file.showFileFinder', () => showFileFinder = true);
+  registerCommand('modal.close', () => {
+    showCommandPalette = false;
+    showFileFinder = false;
+  });
+
   onMount(() => {
     window.addEventListener('keydown', handleKeydown);
     return () => window.removeEventListener('keydown', handleKeydown);
@@ -61,6 +71,7 @@
     on:close={() => showFileFinder = false}
     on:select={handleFileSelect}
   />
+  <KeyboardManager />
 </main>
 
 <style>

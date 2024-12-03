@@ -4,6 +4,7 @@
     import Input from './Input.svelte';
     import { fuzzySearch } from '../utils/fuzzySearch';
     import { commandStore, type Command } from '../stores/commandStore';
+    import { keyBindings, formatKeybinding } from '../stores/keyboardStore';
 
     const dispatch = createEventDispatcher();
 
@@ -13,6 +14,14 @@
     let commands: Command[] = [];
     commandStore.subscribe(value => {
         commands = value;
+    });
+
+    let shortcuts: Record<string, string> = {};
+    keyBindings.subscribe(bindings => {
+        shortcuts = Object.entries(bindings).reduce((acc, [command, binding]) => ({
+            ...acc,
+            [binding.description]: formatKeybinding(binding)
+        }), {});
     });
 
     let searchQuery = '';
@@ -167,13 +176,11 @@
                                     <span class="text-xs text-gray-500">{command.category}</span>
                                 {/if}
                             </div>
-                            {#if command.shortcut}
+                            {#if shortcuts[command.label]}
                                 <div class="flex items-center space-x-1">
-                                    {#each command.shortcut as key}
-                                        <span class="px-1.5 py-0.5 bg-gray-800 rounded text-xs text-gray-400 border border-gray-700">
-                                            {key}
-                                        </span>
-                                    {/each}
+                                    <span class="px-1.5 py-0.5 bg-gray-800 rounded text-xs text-gray-400 border border-gray-700">
+                                        {shortcuts[command.label]}
+                                    </span>
                                 </div>
                             {/if}
                         </button>
