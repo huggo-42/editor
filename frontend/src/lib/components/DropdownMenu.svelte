@@ -15,6 +15,8 @@
 
 {#if show}
     <div 
+        role="menu"
+        on:mouseleave={() => show = false}
         class="absolute py-1 bg-gray-800 rounded shadow-lg z-50 border border-gray-700"
         class:right-0={align === 'right'}
         class:left-0={align === 'left'}
@@ -22,7 +24,6 @@
         class:mb-1={position === 'top'}
         class:bottom-full={position === 'top'}
         style="width: {width}"
-        on:mouseleave={onClose}
     >
         {#each items as item}
             <button

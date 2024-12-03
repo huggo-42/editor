@@ -1,5 +1,6 @@
 <script lang="ts">
     import { X } from "lucide-svelte";
+    import { onMount } from 'svelte';
     import type { Tab } from "@/types/editor.types";
     import type { SidebarState } from "@/types/ui.types";
     import type { FileNode } from "@/types/file.types";
@@ -8,6 +9,7 @@
     import ResizeHandle from "@/lib/editor/ResizeHandle.svelte";
     import Topbar from "@/lib/editor/Topbar.svelte";
     import BottomBar from "@/lib/editor/BottomBar.svelte";
+    import { fileStore, type FileItem } from '../lib/stores/fileStore';
 
     // Tab state
     let tabs = [
@@ -90,6 +92,31 @@ function Counter() {
 
 export default Counter;
   `.trim();
+
+    const WORKSPACE_PATH = '/home/nathanael/Documents/Trabalhos/Sideprojects/EditAI';
+
+    onMount(async () => {
+        // For now, let's add some example files
+        const fileItems: FileItem[] = [
+            {
+                path: 'frontend/src/routes/Editor.svelte',
+                name: 'Editor.svelte',
+                type: 'file'
+            },
+            {
+                path: 'frontend/src/lib/components/FileFinder.svelte',
+                name: 'FileFinder.svelte',
+                type: 'file'
+            },
+            {
+                path: 'frontend/src/lib/stores/fileStore.ts',
+                name: 'fileStore.ts',
+                type: 'file'
+            }
+        ];
+        
+        fileStore.setFiles(fileItems);
+    });
 </script>
 
 <div class="flex flex-col h-screen bg-gray-900 text-gray-300">

@@ -6,6 +6,8 @@
   import Editor from "./routes/Editor.svelte";
   import Configs from "./routes/Configs.svelte";
   import CommandPalette from './lib/components/CommandPalette.svelte';
+  import FileFinder from './lib/components/FileFinder.svelte';
+  import type { FileItem } from './lib/stores/fileStore';
 
   const routes = {
     "/": Welcome,
@@ -14,6 +16,7 @@
   };
 
   let showCommandPalette = false;
+  let showFileFinder = false;
 
   function handleKeydown(event: KeyboardEvent) {
     // Handle Ctrl+Shift+P or Cmd+Shift+P (for Mac)
@@ -21,11 +24,24 @@
       event.preventDefault();
       showCommandPalette = true;
     }
+    // Handle Ctrl+P or Cmd+P (for Mac)
+    else if ((event.ctrlKey || event.metaKey) && !event.shiftKey && event.key.toLowerCase() === 'p') {
+      event.preventDefault();
+      showFileFinder = true;
+    }
     // Handle Escape key
-    if (event.key === 'Escape' && showCommandPalette) {
+    if (event.key === 'Escape' && (showCommandPalette || showFileFinder)) {
       event.preventDefault();
       showCommandPalette = false;
+      showFileFinder = false;
     }
+  }
+
+  function handleFileSelect(event: CustomEvent<FileItem>) {
+    const file = event.detail;
+    // TODO: Open the file in the editor
+    console.log('Opening file:', file.path);
+    showFileFinder = false;
   }
 
   onMount(() => {
@@ -39,6 +55,11 @@
   <CommandPalette 
     bind:show={showCommandPalette}
     on:close={() => showCommandPalette = false}
+  />
+  <FileFinder
+    bind:show={showFileFinder}
+    on:close={() => showFileFinder = false}
+    on:select={handleFileSelect}
   />
 </main>
 
