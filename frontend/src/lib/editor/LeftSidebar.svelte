@@ -202,7 +202,7 @@
         {#if !state.collapsed}
             <!-- Files Section -->
             {#if activeSection === 'files'}
-                <div class="flex items-center justify-between p-2 border-b border-gray-800">
+                <div class="flex items-center justify-between h-[35px] px-4 border-b border-gray-800">
                     <div class="flex items-center space-x-2">
                         <span class="text-sm font-medium">Explorer</span>
                     </div>
@@ -250,7 +250,7 @@
 
             <!-- Git Section -->
             {#if activeSection === 'git'}
-                <div class="flex items-center justify-between p-2 border-b border-gray-800">
+                <div class="flex items-center justify-between h-[35px] px-4 border-b border-gray-800">
                     <div class="flex items-center space-x-2">
                         <span class="text-sm font-medium">Source Control</span>
                     </div>

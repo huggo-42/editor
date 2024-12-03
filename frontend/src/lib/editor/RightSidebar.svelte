@@ -32,8 +32,8 @@
 
 {#if !collapsed}
   <div class="bg-gray-900 h-full w-64 flex flex-col overflow-hidden border-l border-gray-800">
-    <div class="p-4 border-b border-gray-800">
-      <h2 class="text-lg font-semibold mb-2">AI Assistant</h2>
+    <div class="h-[35px] flex items-center px-4 border-b border-gray-800">
+      <h2 class="font-medium">AI Assistant</h2>
     </div>
 
     <div class="flex-grow overflow-y-auto p-4">

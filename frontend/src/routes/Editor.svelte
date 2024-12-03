@@ -96,7 +96,7 @@ export default Counter;
                 <div class="flex overflow-x-auto">
                     {#each tabs as tab (tab.id)}
                         <button
-                            class="flex items-center px-4 py-2 border-r border-gray-800 cursor-pointer {tab.active
+                            class="flex items-center h-[34px] px-4 border-r border-gray-800 cursor-pointer {tab.active
                                 ? 'bg-gray-900'
                                 : 'bg-gray-800 hover:bg-gray-700'} transition-colors duration-200"
                             on:click={() => setActiveTab(tab.id)}
