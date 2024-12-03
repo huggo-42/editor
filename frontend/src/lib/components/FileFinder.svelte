@@ -1,9 +1,10 @@
 <script lang="ts">
-    import { onMount, createEventDispatcher, afterUpdate } from 'svelte';
+    import { onMount, createEventDispatcher, afterUpdate, onDestroy } from 'svelte';
     import { Search, File, Folder } from 'lucide-svelte';
     import Input from './Input.svelte';
     import { fuzzySearch } from '../utils/fuzzySearch';
     import { fileStore, type FileItem } from '../stores/fileStore';
+    import { setKeyboardContext } from '../stores/keyboardStore';
 
     const dispatch = createEventDispatcher<{
         close: void;
@@ -45,10 +46,13 @@
     }
 
     $: if (show) {
+        setKeyboardContext('fileFinder');
         // Use setTimeout to ensure the DOM is updated
         setTimeout(() => {
             inputElement?.focus();
         }, 0);
+    } else {
+        setKeyboardContext('global');
     }
 
     afterUpdate(() => {
@@ -56,6 +60,12 @@
             vimModeEnabled = false;
         }
         previousShow = show;
+    });
+
+    onDestroy(() => {
+        // Make sure we reset to global context when component is destroyed
+        setKeyboardContext('global');
+        vimModeEnabled = false;
     });
 
     function handleKeyDown(event: KeyboardEvent) {

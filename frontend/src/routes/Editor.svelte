@@ -1,6 +1,6 @@
 <script lang="ts">
     import { X } from "lucide-svelte";
-    import { onMount } from 'svelte';
+    import { onMount, onDestroy } from 'svelte';
     import type { Tab } from "@/types/editor.types";
     import type { SidebarState } from "@/types/ui.types";
     import type { FileNode } from "@/types/file.types";
@@ -13,6 +13,7 @@
     import { tooltip } from '@/lib/actions/tooltip';
     import { Search } from "lucide-svelte";
     import { File } from "lucide-svelte";
+    import { setKeyboardContext } from '../lib/stores/keyboardStore';
 
     // Tab state
     let tabs = [
@@ -105,7 +106,8 @@ export default Counter;
     let showCommandPalette = false;
     let showFileFinder = false;
 
-    onMount(async () => {
+    onMount(() => {
+        setKeyboardContext('editor');
         // For now, let's add some example files
         const fileItems: FileItem[] = [
             {
@@ -126,6 +128,10 @@ export default Counter;
         ];
         
         fileStore.setFiles(fileItems);
+    });
+
+    onDestroy(() => {
+        setKeyboardContext('global');
     });
 </script>
 

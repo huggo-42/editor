@@ -4,8 +4,10 @@
   import Input from '../components/Input.svelte';
   import Select from '../components/Select.svelte';
   import DropdownMenu from '../components/DropdownMenu.svelte';
+  import { onMount, onDestroy } from 'svelte';
+  import { setKeyboardContext } from '../stores/keyboardStore';
 
-  export let collapsed: boolean;
+  export let collapsed = false;
 
   interface Message {
     role: 'assistant' | 'user';
@@ -34,6 +36,22 @@
     if (event.key === 'Enter') {
       sendMessage();
     }
+  }
+
+  onMount(() => {
+    if (!collapsed) {
+      setKeyboardContext('aiAssistant');
+    }
+  });
+
+  onDestroy(() => {
+    setKeyboardContext('global');
+  });
+
+  $: if (collapsed) {
+    setKeyboardContext('global');
+  } else {
+    setKeyboardContext('aiAssistant');
   }
 </script>
 

@@ -1,6 +1,6 @@
 <script lang="ts">
   import "./app.css";
-  import { onMount } from 'svelte';
+  import { onMount, push } from 'svelte';
   import Router from "svelte-spa-router";
   import Welcome from "./routes/Welcome.svelte";
   import Editor from "./routes/Editor.svelte";
@@ -52,6 +52,16 @@
   registerCommand('modal.close', () => {
     showCommandPalette = false;
     showFileFinder = false;
+  });
+
+  // Register navigation commands
+  registerCommand('navigation.goToEditor', () => push('/editor'));
+  registerCommand('navigation.goToSettings', () => push('/configs'));
+  registerCommand('view.toggleLeftSidebar', () => {
+    isLeftSidebarCollapsed = !isLeftSidebarCollapsed;
+  });
+  registerCommand('view.toggleRightSidebar', () => {
+    isRightSidebarCollapsed = !isRightSidebarCollapsed;
   });
 
   onMount(() => {

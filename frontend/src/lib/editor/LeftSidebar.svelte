@@ -25,8 +25,20 @@
     import Button from '../components/Button.svelte';
     import Input from '../components/Input.svelte';
     import type { FileNode, GitStatusItem, SidebarState } from '../../types';
+    import { setKeyboardContext } from '../stores/keyboardStore';
 
-    export let state: SidebarState;
+    export let state: {
+        collapsed: boolean;
+        activeSection: string;
+    };
+
+    $: if (state.activeSection === 'files') {
+        setKeyboardContext('fileManager');
+    } else if (state.activeSection === 'git') {
+        setKeyboardContext('git');
+    } else {
+        setKeyboardContext('global');
+    }
 
     let contextMenu = {
         show: false,

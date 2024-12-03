@@ -1,51 +1,32 @@
-import { writable } from 'svelte/store';
-import { push } from 'svelte-spa-router';
+import { writable, derived } from 'svelte/store';
+import { keyBindings, formatKeybinding } from './keyboardStore';
+import type { KeyBinding } from '../types/keyboard';
 
 export interface Command {
     id: string;
     label: string;
-    shortcut?: string[];
     category?: string;
+    shortcut?: string;
     action: () => void;
 }
 
-function createCommandStore() {
-    const { subscribe, update } = writable<Command[]>([
-        {
-            id: 'go-to-editor',
-            label: 'Go to Editor',
-            category: 'Navigation',
-            shortcut: ['Ctrl', 'Shift', 'E'],
-            action: () => push('/editor')
-        },
-        {
-            id: 'go-to-settings',
-            label: 'Open Settings',
-            category: 'Navigation',
-            shortcut: ['Ctrl', ','],
-            action: () => push('/configs')
-        },
-        {
-            id: 'toggle-sidebar',
-            label: 'Toggle Sidebar',
-            category: 'View',
-            shortcut: ['Ctrl', 'B'],
-            action: () => {
-                // We'll implement this later when we add sidebar toggle functionality
-                console.log('Toggle sidebar');
-            }
-        }
-    ]);
+// Create a derived store that combines keyboard shortcuts with commands
+export const commandStore = derived(
+    keyBindings,
+    ($keyBindings) => {
+        const commands: Command[] = [];
 
-    return {
-        subscribe,
-        addCommand: (command: Command) => {
-            update(commands => [...commands, command]);
-        },
-        removeCommand: (id: string) => {
-            update(commands => commands.filter(cmd => cmd.id !== id));
+        // Convert keyboard bindings to commands
+        for (const [id, binding] of Object.entries($keyBindings)) {
+            commands.push({
+                id,
+                label: binding.description,
+                category: binding.category,
+                shortcut: formatKeybinding(binding),
+                action: binding.action
+            });
         }
-    };
-}
 
-export const commandStore = createCommandStore();
+        return commands;
+    }
+);

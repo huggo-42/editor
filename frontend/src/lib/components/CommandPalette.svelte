@@ -4,17 +4,54 @@
     import Input from './Input.svelte';
     import { fuzzySearch } from '../utils/fuzzySearch';
     import { commandStore, type Command } from '../stores/commandStore';
-    import { keyBindings, formatKeybinding } from '../stores/keyboardStore';
+    import { keyBindings, formatKeybinding, setKeyboardContext, type KeyBinding } from '../stores/keyboardStore';
 
     const dispatch = createEventDispatcher();
 
     export let show = false;
     let previousShow = show;
 
-    let commands: Command[] = [];
-    commandStore.subscribe(value => {
-        commands = value;
-    });
+    let searchQuery = '';
+    let selectedIndex = 0;
+    let filteredCommands: Command[] = [];
+    let inputElement: HTMLInputElement;
+    let vimModeEnabled = false;
+
+    // Convert keyboard bindings to commands
+    $: allCommands = Object.entries($keyBindings).map(([id, binding]) => ({
+        id,
+        label: binding.description || id,
+        category: binding.category,
+        context: binding.context?.join(', ') || 'global',
+        shortcut: formatKeybinding(binding),
+        action: binding.action
+    }));
+
+    // Update filtered commands whenever commands or searchQuery changes
+    $: {
+        if (searchQuery?.length > 0) {
+            filteredCommands = fuzzySearch(allCommands, searchQuery, (cmd) => `${cmd.label} ${cmd.category} ${cmd.context}`);
+        } else {
+            filteredCommands = [...allCommands];
+        }
+        selectedIndex = Math.min(selectedIndex, filteredCommands.length - 1);
+    }
+
+    // Reset state when closing
+    $: if (!show) {
+        searchQuery = '';
+        selectedIndex = 0;
+    }
+
+    // Initialize when opening
+    $: if (show) {
+        filteredCommands = [...allCommands];
+        selectedIndex = 0;
+        // Focus input after a short delay to ensure DOM is ready
+        setTimeout(() => {
+            inputElement?.focus();
+        }, 0);
+    }
 
     let shortcuts: Record<string, string> = {};
     keyBindings.subscribe(bindings => {
@@ -24,12 +61,6 @@
         }), {});
     });
 
-    let searchQuery = '';
-    let selectedIndex = 0;
-    let filteredCommands: Command[] = commands;
-    let inputElement: HTMLInputElement;
-    let vimModeEnabled = false;
-
     afterUpdate(() => {
         // If command palette was showing and is now hidden, disable vim mode
         if (previousShow && !show) {
@@ -37,15 +68,6 @@
         }
         previousShow = show;
     });
-
-    $: {
-        if (searchQuery) {
-            filteredCommands = fuzzySearch(commands, searchQuery, (cmd) => cmd.label);
-        } else {
-            filteredCommands = commands;
-        }
-        selectedIndex = 0;
-    }
 
     $: console.log('Vim mode:', vimModeEnabled);
 
@@ -99,14 +121,14 @@
     }
 
     function executeCommand(command: Command) {
-        command.action();
+        if (command.action) {
+            command.action();
+        }
         closeCommandPalette();
     }
 
     function closeCommandPalette() {
         console.log('Closing palette');
-        searchQuery = '';
-        selectedIndex = 0;
         show = false;
         dispatch('close');
     }
@@ -120,10 +142,9 @@
     }
 
     $: if (show) {
-        // Use setTimeout to ensure the input exists in the DOM
-        setTimeout(() => {
-            inputElement?.focus();
-        }, 0);
+        setKeyboardContext('commandPalette');
+    } else {
+        setKeyboardContext('global');
     }
 
     onMount(() => {
@@ -136,6 +157,8 @@
     onDestroy(() => {
         console.log('Component destroyed, resetting vim mode');
         vimModeEnabled = false;
+        // Make sure we reset to global context when component is destroyed
+        setKeyboardContext('global');
     });
 </script>
 
@@ -145,7 +168,7 @@
         on:click={handleClickOutside}
     >
         <div 
-            class="command-palette-content w-[600px] bg-gray-900 rounded-lg shadow-xl border border-gray-700 overflow-hidden"
+            class="command-palette-content w-[600px] bg-gray-900 rounded-lg shadow-xl border border-gray-700"
             on:click={handleClickInside}
         >
             <div class="relative">
@@ -163,28 +186,33 @@
             </div>
 
             {#if filteredCommands.length > 0}
-                <div class="max-h-[300px] overflow-y-auto">
-                    {#each filteredCommands as command, index}
-                        <button
-                            class="w-full px-4 py-2 flex items-center justify-between text-left hover:bg-gray-800 
-                                {index === selectedIndex ? 'bg-gray-800' : ''}"
-                            on:click={() => executeCommand(command)}
-                        >
-                            <div class="flex items-center space-x-2">
-                                <span class="text-gray-300">{command.label}</span>
-                                {#if command.category}
-                                    <span class="text-xs text-gray-500">{command.category}</span>
-                                {/if}
-                            </div>
-                            {#if shortcuts[command.label]}
-                                <div class="flex items-center space-x-1">
-                                    <span class="px-1.5 py-0.5 bg-gray-800 rounded text-xs text-gray-400 border border-gray-700">
-                                        {shortcuts[command.label]}
-                                    </span>
+                <div class="max-h-[60vh] overflow-y-auto">
+                    <div class="divide-y divide-gray-800">
+                        {#each filteredCommands as command, index}
+                            <button
+                                class="w-full px-4 py-2 flex items-center justify-between text-left hover:bg-gray-800 
+                                    {index === selectedIndex ? 'bg-gray-800' : ''}"
+                                on:click={() => executeCommand(command)}
+                            >
+                                <div class="flex items-center space-x-2">
+                                    <span class="text-gray-300">{command.label}</span>
+                                    <div class="flex items-center gap-2">
+                                        {#if command.category}
+                                            <span class="text-xs text-gray-500 px-1.5 py-0.5 bg-gray-800 rounded">{command.category}</span>
+                                        {/if}
+                                        <span class="text-xs text-gray-600">{command.context}</span>
+                                    </div>
                                 </div>
-                            {/if}
-                        </button>
-                    {/each}
+                                {#if command.shortcut}
+                                    <div class="flex items-center space-x-1">
+                                        <span class="px-1.5 py-0.5 bg-gray-800 rounded text-xs text-gray-400 border border-gray-700">
+                                            {command.shortcut}
+                                        </span>
+                                    </div>
+                                {/if}
+                            </button>
+                        {/each}
+                    </div>
                 </div>
             {:else}
                 <div class="px-4 py-8 text-center text-gray-500">
