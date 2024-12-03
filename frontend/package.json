@@ -17,6 +17,7 @@
     "vite": "^4.4.0"
   },
   "dependencies": {
-    "monaco-editor": "^0.52.0"
+    "monaco-editor": "^0.52.0",
+    "svelte-spa-router": "^4.0.1"
   }
 }
