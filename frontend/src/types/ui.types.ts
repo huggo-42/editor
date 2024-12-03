@@ -12,10 +12,11 @@ export interface ContextMenuItem {
     disabled?: boolean;
 }
 
+import type { FileNode } from "./file.types";
+
 export interface SidebarState {
     collapsed: boolean;
-    activeSection?: 'files' | 'git' | 'extensions';
-    fileTree: import('./file.types').FileNode[];
-    gitStatus?: import('./git.types').GitStatusItem[];
-    isAllCollapsed?: boolean;
+    activeSection: 'files' | 'git';
+    fileTree: FileNode[];
+    isAllCollapsed: boolean;
 }

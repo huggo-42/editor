@@ -36,17 +36,24 @@
 
     // Sidebar states
     let leftSidebarState: SidebarState = {
-        collapsed: false,
+        collapsed: true,
         activeSection: 'files',
         fileTree: initialFileTree,
         isAllCollapsed: false
     };
+
+    function updateSidebarState(newState: Partial<SidebarState>) {
+        leftSidebarState = { ...leftSidebarState, ...newState };
+    }
 
     let rightSidebarCollapsed = false;
 
     // Sidebar widths
     let leftSidebarWidth = 300;
     let rightSidebarWidth = 300;
+
+    // Source control state
+    let modifiedFilesCount = 2; // This would be dynamically updated based on git status
 
     function setActiveTab(id: number) {
         tabs = tabs.map((tab) => ({ ...tab, active: tab.id === id }));
@@ -89,8 +96,23 @@ export default Counter;
     <Topbar 
         isLeftSidebarCollapsed={leftSidebarState.collapsed} 
         isRightSidebarCollapsed={rightSidebarCollapsed} 
-        onToggleLeftSidebar={() => (leftSidebarState.collapsed = !leftSidebarState.collapsed)} 
+        onToggleLeftSidebar={() => updateSidebarState({ collapsed: !leftSidebarState.collapsed })} 
         onToggleRightSidebar={() => (rightSidebarCollapsed = !rightSidebarCollapsed)}
+        onToggleSourceControl={() => {
+            updateSidebarState({
+                activeSection: 'git',
+                collapsed: false
+            });
+        }}
+        onToggleExplorer={() => {
+            updateSidebarState({
+                activeSection: 'files',
+                collapsed: false
+            });
+        }}
+        isSourceControlActive={leftSidebarState.activeSection === 'git'}
+        isExplorerActive={leftSidebarState.activeSection === 'files'}
+        modifiedFilesCount={modifiedFilesCount}
     />
     
     <div class="flex flex-1 overflow-hidden">
