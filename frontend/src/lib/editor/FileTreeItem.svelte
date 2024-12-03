@@ -50,7 +50,7 @@
 </script>
 
 <div class="relative" style="padding-left: {depth * 1.5}rem">
-    <div
+    <button
         class="flex items-center py-1 px-2 hover:bg-gray-800 cursor-pointer group"
         on:click={toggleFolder}
         on:contextmenu|preventDefault={(e) => onContextMenu(e, item)}
@@ -97,7 +97,7 @@
         {:else}
             <span class="flex-grow truncate">{item.name}</span>
         {/if}
-    </div>
+        </button>
 
     {#if item.type === "folder" && isOpen}
         <div class="file-tree-children">
