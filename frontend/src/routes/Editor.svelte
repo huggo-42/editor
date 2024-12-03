@@ -5,6 +5,7 @@
     import type { FileNode } from "@/types/file.types";
     import LeftSidebar from "@/lib/editor/LeftSidebar.svelte";
     import RightSidebar from "@/lib/editor/RightSidebar.svelte";
+    import ResizeHandle from "@/lib/editor/ResizeHandle.svelte";
     import Topbar from "@/lib/editor/Topbar.svelte";
     import BottomBar from "@/lib/editor/BottomBar.svelte";
 
@@ -42,6 +43,10 @@
     };
 
     let rightSidebarCollapsed = false;
+
+    // Sidebar widths
+    let leftSidebarWidth = 300;
+    let rightSidebarWidth = 300;
 
     function setActiveTab(id: number) {
         tabs = tabs.map((tab) => ({ ...tab, active: tab.id === id }));
@@ -89,7 +94,16 @@ export default Counter;
     />
     
     <div class="flex flex-1 overflow-hidden">
-        <LeftSidebar state={leftSidebarState} />
+        {#if !leftSidebarState.collapsed}
+            <div style="width: {leftSidebarWidth}px" class="flex-shrink-0">
+                <LeftSidebar state={leftSidebarState} />
+            </div>
+            <ResizeHandle 
+                side="left" 
+                currentWidth={leftSidebarWidth}
+                onResize={(width) => leftSidebarWidth = width} 
+            />
+        {/if}
         
         <main class="flex-1 flex flex-col min-w-0 max-w-full">
             <div class="flex items-center border-b border-gray-800 bg-gray-900">
@@ -121,7 +135,16 @@ export default Counter;
             </div>
         </main>
         
-        <RightSidebar collapsed={rightSidebarCollapsed} />
+        {#if !rightSidebarCollapsed}
+            <ResizeHandle 
+                side="right" 
+                currentWidth={rightSidebarWidth}
+                onResize={(width) => rightSidebarWidth = width} 
+            />
+            <div style="width: {rightSidebarWidth}px" class="flex-shrink-0">
+                <RightSidebar collapsed={rightSidebarCollapsed} />
+            </div>
+        {/if}
     </div>
     
     <BottomBar />

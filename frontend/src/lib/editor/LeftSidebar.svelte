@@ -173,7 +173,7 @@
     $: modifiedFilesCount = gitStatus.length;
 </script>
 
-<div class="h-full flex flex-col bg-gray-900 border-r border-gray-800 {state.collapsed ? 'w-12' : 'w-64'}">
+<div class="h-full w-full flex flex-col overflow-hidden border-r border-gray-800">
     <div class="flex flex-col h-full">
         <!-- Sidebar Icons -->
         <div class="flex flex-col items-center py-2 {state.collapsed ? 'space-y-4' : 'hidden'}">
