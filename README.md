@@ -38,8 +38,12 @@ EditAI combines these technologies to create a high-performance editor with nati
 
 ## Screenshots
 
-**Source control**
+**Recent projects**
 
+![screenshot-2024-12-08-21-14-58](https://github.com/user-attachments/assets/1f76ca89-22a5-4c74-afe6-a3e4dd91ef03)
+
+
+**Source control**
 
 ![screenshot-2024-12-03-10-42-12](https://github.com/user-attachments/assets/75de0fac-547a-45d7-bdd1-e31843cefe26)
 
