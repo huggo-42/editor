@@ -2,71 +2,117 @@
     import { onMount, createEventDispatcher, afterUpdate, onDestroy } from 'svelte';
     import { Search, File, Folder } from 'lucide-svelte';
     import Input from './Input.svelte';
-    import { fuzzySearch } from '../utils/fuzzySearch';
-    import { fileStore, type FileItem } from '../stores/fileStore';
-    import { setKeyboardContext } from '../stores/keyboardStore';
+    import { setKeyboardContext } from '@/stores/keyboardStore';
+    import { SearchFiles } from '@/lib/wailsjs/go/main/App';
+    import { projectStore } from '@/stores/project';
+    import { fileStore } from '@/stores/fileStore';
+    import type { service } from '../wailsjs/go/models';
 
     const dispatch = createEventDispatcher<{
         close: void;
-        select: FileItem;
+        select: any;
     }>();
 
     export let show = false;
     let previousShow = show;
     let vimModeEnabled = false;
     let searchQuery = '';
+    let results: service.FileNode[] = [];
     let selectedIndex = 0;
-    let files: FileItem[] = [];
-    let filteredFiles: FileItem[] = [];
+    let loading = false;
+    let error = null;
     let inputElement: HTMLInputElement;
+    let debounceTimer: number | null = null;
+    let currentSearch: Promise<any> | null = null;
+    let searchCounter = 0;
+    let mounted = false;
 
-    // Subscribe to fileStore
-    onMount(() => {
-        const unsubscribe = fileStore.subscribe(value => {
-            files = value;
-            updateFilteredFiles();
-        });
-
-        return () => {
-            unsubscribe();
-        };
-    });
-
-    function updateFilteredFiles() {
-        if (searchQuery) {
-            filteredFiles = fuzzySearch(files, searchQuery, (file) => file.name);
-        } else {
-            filteredFiles = [...files];
+    // Reset all states
+    function resetState() {
+        if (debounceTimer) {
+            clearTimeout(debounceTimer);
+            debounceTimer = null;
         }
+        results = [];
         selectedIndex = 0;
+        loading = false;
+        error = null;
+        currentSearch = null;
     }
 
-    $: if (searchQuery !== undefined) {
-        updateFilteredFiles();
-    }
-
-    $: if (show) {
-        setKeyboardContext('fileFinder');
-        // Use setTimeout to ensure the DOM is updated
-        setTimeout(() => {
-            inputElement?.focus();
-        }, 0);
-    } else {
-        setKeyboardContext('global');
-    }
-
-    afterUpdate(() => {
-        if (previousShow && !show) {
-            vimModeEnabled = false;
+    // Perform search
+    async function performSearch(query: string, counter: number) {
+        if (!show || counter !== searchCounter) {
+            loading = false;
+            return;
         }
-        previousShow = show;
-    });
 
-    onDestroy(() => {
-        // Make sure we reset to global context when component is destroyed
-        setKeyboardContext('global');
-        vimModeEnabled = false;
-    });
+        try {
+            const thisSearch = SearchFiles($projectStore.currentProject!.Path, query);
+            currentSearch = thisSearch;
+
+            const searchResults = await thisSearch;
+            if (counter === searchCounter && show) {
+                results = searchResults || [];
+                selectedIndex = Math.min(selectedIndex, Math.max(0, results.length - 1));
+            }
+        } catch (err) {
+            if (counter === searchCounter && show) {
+                results = [];
+                error = err.message;
+            }
+        } finally {
+            if (counter === searchCounter) {
+                loading = false;
+            }
+        }
+    }
+
+    // Watch for show changes
+    $: {
+        if (show !== previousShow) {
+            if (show) {
+                setKeyboardContext('fileFinder');
+                searchQuery = '';
+                if (inputElement) {
+                    setTimeout(() => inputElement.focus(), 0);
+                }
+            } else {
+                setKeyboardContext('global');
+            }
+            resetState();
+            previousShow = show;
+        }
+    }
+
+    // Handle search query changes
+    $: {
+        if (mounted && show && searchQuery !== undefined) {
+            if (debounceTimer) {
+                clearTimeout(debounceTimer);
+                debounceTimer = null;
+            }
+
+            searchCounter++; // Increment counter for new search attempt
+            const currentCounter = searchCounter;
+            
+            // Don't trim the query - allow spaces
+            if (searchQuery === '') {
+                resetState();
+            } else {
+                loading = true;
+                error = null;
+                debounceTimer = setTimeout(() => {
+                    if (show && currentCounter === searchCounter) {
+                        // Remove leading and trailing and inner spaces
+                        performSearch(searchQuery.trim().replace(/\s+/g, ''), currentCounter);
+                    } else {
+                        loading = false;
+                    }
+                }, 200);
+            }
+        }
+    }
 
     function handleKeyDown(event: KeyboardEvent) {
         if (!show) return;
@@ -80,33 +126,23 @@
 
         switch(event.key) {
             case 'ArrowDown':
+            case 'j':
+                if (event.key === 'j' && !vimModeEnabled) break;
                 event.preventDefault();
-                selectedIndex = (selectedIndex + 1) % filteredFiles.length;
+                selectedIndex = (selectedIndex + 1) % results.length;
                 break;
             case 'ArrowUp':
-                event.preventDefault();
-                selectedIndex = selectedIndex - 1 < 0 
-                    ? filteredFiles.length - 1 
-                    : selectedIndex - 1;
-                break;
-            case 'j':
-                if (vimModeEnabled) {
-                    event.preventDefault();
-                    selectedIndex = (selectedIndex + 1) % filteredFiles.length;
-                }
-                break;
             case 'k':
-                if (vimModeEnabled) {
-                    event.preventDefault();
-                    selectedIndex = selectedIndex - 1 < 0 
-                        ? filteredFiles.length - 1 
-                        : selectedIndex - 1;
-                }
+                if (event.key === 'k' && !vimModeEnabled) break;
+                event.preventDefault();
+                selectedIndex = selectedIndex - 1 < 0
+                    ? results.length - 1
+                    : selectedIndex - 1;
                 break;
             case 'Enter':
                 event.preventDefault();
-                if (filteredFiles[selectedIndex]) {
-                    openFile(filteredFiles[selectedIndex]);
+                if (results[selectedIndex]) {
+                    handleSelect(results[selectedIndex]);
                 }
                 break;
             case 'Escape':
@@ -116,62 +152,60 @@
         }
     }
 
-    function openFile(file: FileItem) {
-        dispatch('select', file);
+    async function handleSelect(file: any) {
+        if (file.type === 'file') {
+            await fileStore.openFile(file.path);
+        }
         closeFileFinder();
     }
 
     function closeFileFinder() {
+        resetState();
         searchQuery = '';
         selectedIndex = 0;
         show = false;
         dispatch('close');
     }
 
-    function handleClickOutside() {
-        closeFileFinder();
+    function handleClickOutside(event: MouseEvent) {
+        const target = event.target as HTMLElement;
+        if (target.classList.contains('bg-opacity-50')) {
+            closeFileFinder();
+        }
     }
 
-    function handleClickInside(event: MouseEvent) {
-        event.stopPropagation();
+    function removeBasedir(path: string) {
+        return path.replace($projectStore.currentProject!.Path + '/', '');
     }
 
     onMount(() => {
-        window.addEventListener('keydown', handleKeyDown);
-        return () => {
-            window.removeEventListener('keydown', handleKeyDown);
-        };
+        mounted = true;
+        if (show && inputElement) {
+            inputElement.focus();
+        }
     });
 
-    function getFileIcon(type: string) {
-        return type === 'directory' ? Folder : File;
-    }
-
-    function formatPath(path: string) {
-        const parts = path.split('/');
-        const fileName = parts.pop();
-        return {
-            path: parts.join('/'),
-            fileName
-        };
-    }
+    onDestroy(() => {
+        mounted = false;
+        resetState();
+        setKeyboardContext('global');
+    });
 </script>
 
 {#if show}
-    <div 
+    <button
         class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-start justify-center pt-[20vh]"
         on:click={handleClickOutside}
     >
-        <div 
-            class="w-[600px] bg-gray-900 rounded-lg shadow-xl border border-gray-700 overflow-hidden"
-            on:click={handleClickInside}
-        >
+        <button class="w-[600px] bg-gray-900 rounded-lg shadow-xl border border-gray-700 overflow-hidden" on:click|stopPropagation>
             <div class="relative">
                 <div class="pl-10">
                     <Input
                         bind:value={searchQuery}
                         placeholder="Type to search files..."
                         bind:this={inputElement}
+                        on:keydown={handleKeyDown}
+                        class="w-full px-4 py-2 bg-transparent border-none focus:outline-none text-gray-200"
                         autofocus
                     />
                 </div>
@@ -180,34 +214,41 @@
                 </div>
             </div>
 
-            {#if filteredFiles.length > 0}
+            {#if loading}
+                <div class="px-4 py-8 text-center text-gray-500">
+                    Loading...
+                </div>
+            {:else if error}
+                <div class="px-4 py-8 text-center text-red-500">
+                    {error}
+                </div>
+            {:else if results.length > 0}
                 <div class="max-h-[400px] overflow-y-auto">
-                    {#each filteredFiles as file, index}
-                        {@const { path, fileName } = formatPath(file.path)}
+                    {#each results as file, index}
                         <button
-                            class="w-full px-4 py-2 flex items-center gap-3 text-left hover:bg-gray-800 
+                            class="w-full px-4 py-2 flex items-center gap-3 text-left hover:bg-gray-800
                                 {index === selectedIndex ? 'bg-gray-800' : ''}"
-                            on:click={() => openFile(file)}
+                            on:click={() => handleSelect(file)}
                         >
-                            <svelte:component 
-                                this={getFileIcon(file.type)} 
+                            <svelte:component
+                                this={file.type === 'directory' ? Folder : File}
                                 size={16}
                                 class="text-gray-400 flex-shrink-0"
                             />
                             <div class="flex flex-col min-w-0">
-                                <span class="text-gray-300 font-medium truncate">{fileName}</span>
-                                {#if path}
-                                    <span class="text-gray-500 text-sm truncate">{path}</span>
+                                <span class="text-gray-300 font-medium truncate">{file.name}</span>
+                                {#if file.path}
+                                    <span class="text-gray-500 text-sm truncate">{removeBasedir(file.path)}</span>
                                 {/if}
                             </div>
                         </button>
                     {/each}
                 </div>
-            {:else}
+            {:else if searchQuery.trim()}
                 <div class="px-4 py-8 text-center text-gray-500">
                     No files found
                 </div>
             {/if}
-        </div>
-    </div>
+        </button>
+    </button>
 {/if}

@@ -1,49 +1,33 @@
 <script lang="ts">
-    import { X } from "lucide-svelte";
+    import { X, Circle, ChevronLeft, ChevronRight } from "lucide-svelte";
     import { onMount, onDestroy } from 'svelte';
-    import type { Tab } from "@/types/editor.types";
-    import type { SidebarState } from "@/types/ui.types";
-    import type { FileNode } from "@/types/file.types";
+    import type { Tab } from "@/types/editor";
+    import type { SidebarState } from "@/types/ui";
     import LeftSidebar from "@/lib/editor/LeftSidebar.svelte";
     import RightSidebar from "@/lib/editor/RightSidebar.svelte";
     import ResizeHandle from "@/lib/editor/ResizeHandle.svelte";
     import Topbar from "@/lib/editor/Topbar.svelte";
     import BottomBar from "@/lib/editor/BottomBar.svelte";
-    import { fileStore, type FileItem } from '../lib/stores/fileStore';
+    import { fileStore } from '@/stores/fileStore';
+    import { projectStore } from '@/stores/project';
+    import { registerCommand, setKeyboardContext } from '@/stores/keyboardStore';
+    import { get } from 'svelte/store';
+    import Editor from "@/lib/editor/Editor.svelte";
+    import FileFinder from "@/lib/components/FileFinder.svelte";
+    import Modal from "@/lib/components/Modal.svelte";
 
-    import { setKeyboardContext } from '../lib/stores/keyboardStore';
-    import * as monaco from 'monaco-editor';
-
-    // Tab state
-    let tabs = [
-        { id: 1, name: "App.tsx", active: true },
-        { id: 2, name: "LeftSidebar.tsx", active: false },
-        { id: 3, name: "Editor.tsx", active: false },
-    ] satisfies Tab[];
-
-    // Initial file tree
-    const initialFileTree: FileNode[] = [
-        {
-            id: '1',
-            name: 'src',
-            type: 'folder',
-            path: '/src',
-            expanded: true,
-            children: [
-                { id: '2', name: 'lib', type: 'folder', path: '/src/lib', children: [] },
-                { id: '3', name: 'routes', type: 'folder', path: '/src/routes', children: [] },
-                { id: '4', name: 'App.tsx', type: 'file', path: '/src/App.tsx' },
-                { id: '5', name: 'main.ts', type: 'file', path: '/src/main.ts' },
-            ]
-        },
-        { id: '6', name: 'package.json', type: 'file', path: '/package.json' }
-    ];
+    // Convert open files to tabs
+    $: tabs = Array.from($fileStore.openFiles.entries()).map(([path, file]) => ({
+        id: path,
+        name: path.split('/').pop() || '',
+        active: path === $fileStore.activeFilePath,
+        isDirty: file.isDirty
+    }));
 
     // Sidebar states
     let leftSidebarState: SidebarState = {
-        collapsed: true,
+        collapsed: false,
         activeSection: 'files',
-        fileTree: initialFileTree,
         isAllCollapsed: false
     };
 
@@ -55,106 +39,79 @@
 
     // Sidebar widths
     let leftSidebarWidth = 300;
-    let rightSidebarWidth = 300;
+    let rightSidebarWidth = 600;
 
     // Source control state
     let modifiedFilesCount = 2;
 
-    // Monaco editor instance
-    let editor: monaco.editor.IStandaloneCodeEditor;
-    let editorContainer: HTMLElement;
+    let tabsContainer: HTMLDivElement;
 
-    const editorContent = `
-import React, { useState, useEffect } from 'react';
+    let showCloseConfirmModal = false;
+    let fileToClose: string | null = null;
 
-function Counter() {
-  const [count, setCount] = useState(0);
-
-  useEffect(() => {
-    console.log('Component mounted');
-  }, []);
-
-  return (
-    <main>
-      <h1>Welcome to React</h1>
-      <p>Edit <code>src/App.tsx</code> and save to reload.</p>
-      <button onClick={() => setCount(count + 1)}>
-        Clicks: {count}
-      </button>
-    </main>
-  );
-}
-
-export default Counter;
-  `.trim();
-
-    function setActiveTab(id: number) {
-        tabs = tabs.map((tab) => ({ ...tab, active: tab.id === id }));
+    function setActiveTab(id: string) {
+        fileStore.setActiveFile(id);
     }
 
-    function closeTab(id: number) {
-        const newTabs = tabs.filter((tab) => tab.id !== id);
-        if (newTabs.length > 0 && !newTabs.some((tab) => tab.active)) {
-            newTabs[0].active = true;
+    function handleCloseTab(id: string) {
+        const file = $fileStore.openFiles.get(id);
+        if (file?.isDirty) {
+            fileToClose = id;
+            showCloseConfirmModal = true;
+        } else {
+            closeTab(id);
         }
-        tabs = newTabs;
     }
 
-    function initMonaco() {
-        if (editorContainer && !editor) {
-            editor = monaco.editor.create(editorContainer, {
-                value: editorContent,
-                language: 'typescript',
-                theme: 'vs-dark',
-                automaticLayout: true,
-                minimap: {
-                    enabled: true
-                },
-                fontSize: 14,
-                lineNumbers: 'on',
-                roundedSelection: false,
-                scrollBeyondLastLine: false,
-                readOnly: false,
-                cursorStyle: 'line',
-                tabSize: 2
-            });
+    function confirmCloseTab() {
+        if (fileToClose) {
+            closeTab(fileToClose);
+            fileToClose = null;
+            showCloseConfirmModal = false;
         }
+    }
+
+    function closeTab(id: string) {
+        fileStore.closeFile(id);
     }
 
     function handleResize() {
         editor?.layout();
     }
 
-    onMount(() => {
-        setKeyboardContext('editor');
-        initMonaco();
+    function scrollTabs(direction: 'left' | 'right') {
+        if (tabsContainer) {
+            const scrollAmount = 200;
+            const targetScroll = tabsContainer.scrollLeft + (direction === 'left' ? -scrollAmount : scrollAmount);
+            tabsContainer.scrollTo({
+                left: targetScroll,
+                behavior: 'smooth'
+            });
+        }
+    }
 
-        // For now, let's add some example files
-        const fileItems: FileItem[] = [
-            {
-                path: 'frontend/src/routes/Editor.svelte',
-                name: 'Editor.svelte',
-                type: 'file'
-            },
-            {
-                path: 'frontend/src/lib/components/FileFinder.svelte',
-                name: 'FileFinder.svelte',
-                type: 'file'
-            },
-            {
-                path: 'frontend/src/lib/stores/fileStore.ts',
-                name: 'fileStore.ts',
-                type: 'file'
-            }
-        ];
+    function handleTabClick(event: MouseEvent, id: string) {
+        if (event.button === 1) { // Middle click
+            event.preventDefault();
+            handleCloseTab(id);
+        }
+    }
+
+    onMount(async () => {
+        const state = get(projectStore);
+        if (state.currentProject?.Path) {
+            await fileStore.loadProjectFiles(state.currentProject.Path);
+        }
         
-        fileStore.setFiles(fileItems);
+        setKeyboardContext('editor');
+        registerCommand('file.showFileFinder', () => showFileFinder = true);
     });
 
     onDestroy(() => {
-        editor?.dispose();
         setKeyboardContext('global');
     });
+
+    $: console.log($fileStore);
 </script>
 
 <div class="flex flex-col h-screen bg-gray-900 text-gray-300">
@@ -186,20 +143,32 @@ export default Counter;
                 }}
             />
         {/if}
+
         
-        <main class="flex-1 flex flex-col min-w-0 max-w-full">
-            <div class="flex items-center border-b border-gray-800 bg-gray-900">
-                <div class="flex overflow-x-auto">
+        <main class="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+            <div class="flex items-center border-b border-gray-800 bg-gray-900 relative">
+                <div 
+                    bind:this={tabsContainer}
+                    class="flex overflow-x-scroll scrollbar-hide relative flex-1"
+                >
                     {#each tabs as tab (tab.id)}
                         <button
-                            class="flex items-center h-[34px] px-4 border-r border-gray-800 cursor-pointer {tab.active
-                                ? 'bg-gray-900'
-                                : 'bg-gray-800 hover:bg-gray-700'} transition-colors duration-200"
+                            class="flex items-center h-[34px] px-4 border-r border-gray-800 cursor-pointer relative
+                                {tab.active
+                                    ? 'bg-gray-900 before:absolute before:top-0 before:left-0 before:right-0 before:h-[2px] before:bg-sky-500'
+                                    : 'bg-gray-800 hover:bg-gray-700'} 
+                                transition-colors duration-200"
                             on:click={() => setActiveTab(tab.id)}
+                            on:mouseup={(e) => handleTabClick(e, tab.id)}
                         >
-                            <span>{tab.name}</span>
+                            <span class="flex items-center gap-2">
+                                {#if tab.isDirty}
+                                    <Circle size={8} class="fill-current text-gray-300" />
+                                {/if}
+                                {tab.name}
+                            </span>
                             <button
-                                on:click|stopPropagation={() => closeTab(tab.id)}
+                                on:click|stopPropagation={() => handleCloseTab(tab.id)}
                                 class="ml-2 text-gray-400 hover:text-gray-100 transition-colors duration-200"
                                 aria-label="Close {tab.name}"
                             >
@@ -208,10 +177,29 @@ export default Counter;
                         </button>
                     {/each}
                 </div>
+                <div class="flex items-center gap-1 border-gray-800 bg-gray-900 pl-1 sticky right-0">
+                    <button
+                        on:click={() => scrollTabs('left')}
+                        class="p-1.5 hover:bg-gray-800 transition-colors duration-200 rounded-md border border-gray-700"
+                        aria-label="Scroll tabs left"
+                    >
+                        <ChevronLeft size={16} />
+                    </button>
+                    <button
+                        on:click={() => scrollTabs('right')}
+                        class="p-1.5 hover:bg-gray-800 transition-colors duration-200 rounded-md border border-gray-700"
+                        aria-label="Scroll tabs right"
+                    >
+                        <ChevronRight size={16} />
+                    </button>
+                </div>
             </div>
+
+            <Editor
+                on:showFileFinder={() => showFileFinder = true}
+            />
             
-            <div class="flex-1 overflow-hidden" bind:this={editorContainer} />
-        </main>
+         </main>
         
         {#if !rightSidebarCollapsed}
             <ResizeHandle 
@@ -229,4 +217,28 @@ export default Counter;
     </div>
     
     <BottomBar />
+
+    <FileFinder bind:show={showFileFinder} on:close={() => showFileFinder = false} />
+    
+    <Modal
+        bind:show={showCloseConfirmModal}
+        title="Unsaved Changes"
+        confirmText="Close without saving"
+        cancelText="Cancel"
+        confirmButtonClass="bg-red-600 hover:bg-red-700"
+        on:confirm={confirmCloseTab}
+        on:close={() => showCloseConfirmModal = false}
+    >
+        <p>You have unsaved changes in this file. Are you sure you want to close it?</p>
+    </Modal>
 </div>
+
+<style>
+    .scrollbar-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+    .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+    }
+</style>

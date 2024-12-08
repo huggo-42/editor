@@ -5,43 +5,61 @@
         FolderOpen,
         Folder,
         File,
+        Loader2,
     } from "lucide-svelte";
-    import type { FileNode } from "../../types";
+    import type { service } from '@/lib/wailsjs/go/models';
+    import { fileStore } from '@/stores/fileStore';
+    import { LoadDirectoryContents } from '@/lib/wailsjs/go/main/App';
+
+    type FileNode = service.FileNode;
 
     export let item: FileNode;
     export let depth = 0;
     export let onContextMenu: (e: MouseEvent, item: FileNode) => void;
-    export let onRename: (id: string, newName: string) => void;
+    export let onRename: (path: string, newName: string) => void;
     export let isAllCollapsed = false;
 
-    let isOpen = !isAllCollapsed && item.expanded;
+    let isOpen = false;
+    let isLoading = false;
     let editingName = item.name;
     let inputElement: HTMLInputElement;
 
+    $: isDirectory = item.type === "directory";
+    $: hasChildren = isDirectory && item.children && item.children.length > 0;
+    $: isActive = $fileStore.activeFilePath === item.path;
+
     $: {
-        if (isAllCollapsed !== undefined) {
-            isOpen = !isAllCollapsed && item.expanded;
+        if (isAllCollapsed) {
+            isOpen = false;
         }
     }
 
-    $: {
-        if (item.isRenaming && inputElement) {
-            inputElement.focus();
-            inputElement.select();
-        }
-    }
-
-    function toggleFolder(e: MouseEvent) {
+    async function toggleFolder(e: MouseEvent) {
         e.stopPropagation();
-        if (item.type === "folder") {
+        if (isDirectory) {
+            if (!item.isLoaded && !isOpen) {
+                isLoading = true;
+                try {
+                    const updatedNode = await LoadDirectoryContents(item.path);
+                    if (updatedNode) {
+                        item.children = updatedNode.children;
+                        item.isLoaded = true;
+                    }
+                } catch (error) {
+                    console.error('Error loading directory:', error);
+                } finally {
+                    isLoading = false;
+                }
+            }
             isOpen = !isOpen;
-            item.expanded = isOpen;
+        } else {
+            fileStore.openFile(item.path);
         }
     }
 
     function handleRenameSubmit(e: Event) {
         e.preventDefault();
-        onRename(item.id, editingName);
+        onRename(item.path, editingName);
     }
 
     function handleRenameChange(e: Event) {
@@ -49,9 +67,9 @@
     }
 </script>
 
-<div class="relative" style="padding-left: {depth * 1.5}rem">
+<div class="relative">
     <div
-        class="flex items-center py-1 px-2 hover:bg-gray-800 cursor-pointer group rounded-sm mx-1 hover:rounded-md"
+        class="flex items-center py-1 px-2 hover:bg-gray-800 cursor-pointer group rounded-sm mx-1 hover:rounded-md {isActive ? 'bg-sky-800' : ''}"
         on:click={toggleFolder}
         on:contextmenu|preventDefault={(e) => onContextMenu(e, item)}
         on:keydown={(e) => {
@@ -62,66 +80,64 @@
         }}
         role="button"
         tabindex="0"
-        aria-expanded={item.type === 'folder' ? isOpen : undefined}
+        aria-expanded={item.type === 'directory' ? isOpen : undefined}
         aria-label={`${item.name} ${item.type}`}
     >
-        <span class="mr-1 w-[22px] flex justify-center">
-            {#if item.type === "folder"}
-                <button
-                    class="p-0.5 rounded"
-                    on:click|stopPropagation={toggleFolder}
-                    aria-label={`${isOpen ? 'Collapse' : 'Expand'} ${item.name} folder`}
-                >
-                    {#if isOpen}
-                        <ChevronDown size={16} />
-                    {:else}
-                        <ChevronRight size={16} />
+        <div class="flex items-center flex-1 overflow-hidden"  style="padding-left: {depth * 0.5}rem">
+            {#if isDirectory}
+                <div class="w-4 h-4 flex items-center justify-center">
+                    {#if isLoading}
+                        <Loader2 class="animate-spin" size={16} />
+                    {:else if hasChildren}
+                        {#if isOpen}
+                            <ChevronDown size={16} />
+                        {:else}
+                            <ChevronRight size={16} />
+                        {/if}
                     {/if}
-                </button>
+                </div>
+                <div class="w-4 h-4 ml-1 text-sky-400">
+                    {#if isOpen}
+                        <FolderOpen size={16} />
+                    {:else}
+                        <Folder size={16} />
+                    {/if}
+                </div>
             {:else}
-                <span class="invisible">
-                    <ChevronRight size={16} />
-                </span>
+                <div class="w-4 h-4 ml-5">
+                    <File size={16} />
+                </div>
             {/if}
-        </span>
 
-        <span class="mr-1 {item.type === 'folder' ? 'text-sky-400' : ''} w-[20px] flex justify-center">
-            {#if item.type === "folder"}
-                {#if isOpen}
-                    <FolderOpen size={16} />
-                {:else}
-                    <Folder size={16} />
-                {/if}
+            {#if item.isRenaming}
+                <form on:submit={handleRenameSubmit} class="flex-1">
+                    <input
+                        bind:this={inputElement}
+                        type="text"
+                        class="w-full bg-gray-800 text-sm px-1 rounded"
+                        value={editingName}
+                        on:change={handleRenameChange}
+                        on:blur={() => onRename(item.path, editingName)}
+                    />
+                </form>
             {:else}
-                <File size={16} />
+                <span class="ml-1 truncate">{item.name}</span>
             {/if}
-        </span>
-
-        {#if item.isRenaming}
-            <form on:submit={handleRenameSubmit} class="flex-grow">
-                <input
-                    bind:this={inputElement}
-                    bind:value={editingName}
-                    class="w-full bg-gray-700 px-1 rounded"
-                    on:input={handleRenameChange}
-                    on:blur={handleRenameSubmit}
-                />
-            </form>
-        {:else}
-            <span class="flex-grow truncate">{item.name}</span>
-        {/if}
+        </div>
     </div>
 
-    {#if item.type === "folder" && isOpen && item.children}
-        {#each item.children as child (child.id)}
-            <svelte:self
-                item={child}
-                depth={depth + 1}
-                {onContextMenu}
-                {onRename}
-                {isAllCollapsed}
-            />
-        {/each}
+    {#if isOpen && hasChildren}
+        <div>
+            {#each item.children as child (child.path)}
+                <svelte:self
+                    item={child}
+                    depth={depth + 1}
+                    {onContextMenu}
+                    {onRename}
+                    {isAllCollapsed}
+                />
+            {/each}
+        </div>
     {/if}
 </div>
 

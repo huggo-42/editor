@@ -1,11 +1,7 @@
 // Editor Types
-export * from './editor.types';
-
-// File System Types
-export * from './file.types';
-
-// Git Types
-export * from './git.types';
+export * from './files';
+export * from './git';
+export * from './keyboard';
 
 // UI Types
-export * from './ui.types';
+export * from './ui';

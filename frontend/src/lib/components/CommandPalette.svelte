@@ -2,9 +2,9 @@
     import { onMount, createEventDispatcher, afterUpdate, onDestroy } from 'svelte';
     import { Search } from 'lucide-svelte';
     import Input from './Input.svelte';
-    import { fuzzySearch } from '../utils/fuzzySearch';
-    import { commandStore, type Command } from '../stores/commandStore';
-    import { keyBindings, formatKeybinding, setKeyboardContext, type KeyBinding } from '../stores/keyboardStore';
+    import { fuzzySearch } from '@/lib/utils/fuzzySearch';
+    import { commandStore, type Command } from '@/stores/commandStore';
+    import { keyBindings, formatKeybinding, addKeyboardContext, removeKeyboardContext, type KeyBinding } from '@/stores/keyboardStore';
 
     const dispatch = createEventDispatcher();
 
@@ -37,20 +37,24 @@
         selectedIndex = Math.min(selectedIndex, filteredCommands.length - 1);
     }
 
-    // Reset state when closing
-    $: if (!show) {
-        searchQuery = '';
-        selectedIndex = 0;
-    }
-
     // Initialize when opening
     $: if (show) {
+        console.log('Command palette opened, adding commandPalette context');
+        addKeyboardContext('commandPalette');
         filteredCommands = [...allCommands];
         selectedIndex = 0;
         // Focus input after a short delay to ensure DOM is ready
         setTimeout(() => {
             inputElement?.focus();
         }, 0);
+    }
+
+    // Reset state when closing
+    $: if (!show && previousShow) {
+        console.log('Command palette closed, removing commandPalette context');
+        removeKeyboardContext('commandPalette');
+        searchQuery = '';
+        selectedIndex = 0;
     }
 
     let shortcuts: Record<string, string> = {};
@@ -141,11 +145,10 @@
         event.stopPropagation();
     }
 
-    $: if (show) {
-        setKeyboardContext('commandPalette');
-    } else {
-        setKeyboardContext('global');
-    }
+    onDestroy(() => {
+        console.log('Component destroyed, removing commandPalette context');
+        removeKeyboardContext('commandPalette');
+    });
 
     onMount(() => {
         window.addEventListener('keydown', handleKeyDown);
@@ -153,21 +156,14 @@
             window.removeEventListener('keydown', handleKeyDown);
         };
     });
-
-    onDestroy(() => {
-        console.log('Component destroyed, resetting vim mode');
-        vimModeEnabled = false;
-        // Make sure we reset to global context when component is destroyed
-        setKeyboardContext('global');
-    });
 </script>
 
 {#if show}
-    <div 
+    <button 
         class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-start justify-center pt-[20vh]"
         on:click={handleClickOutside}
     >
-        <div 
+        <button 
             class="command-palette-content w-[600px] bg-gray-900 rounded-lg shadow-xl border border-gray-700"
             on:click={handleClickInside}
         >
@@ -219,6 +215,6 @@
                     No commands found
                 </div>
             {/if}
-        </div>
-    </div>
+        </button>
+    </button>
 {/if}

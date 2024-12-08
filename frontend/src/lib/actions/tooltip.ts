@@ -1,5 +1,5 @@
-import { keyBindings, formatKeybinding } from '../stores/keyboardStore';
-import type { KeyBinding } from '../types/keyboard';
+import { keyBindings, formatKeybinding } from '../../stores/keyboardStore';
+import type { KeyBinding } from '../../types/keyboard';
 
 let tooltipElement: HTMLElement | null = null;
 

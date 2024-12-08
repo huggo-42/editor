@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onMount, onDestroy } from 'svelte';
-    import { handleKeyboardEvent } from '../stores/keyboardStore';
+    import { handleKeyboardEvent } from '@/stores/keyboardStore';
 
     onMount(() => {
         window.addEventListener('keydown', handleKeyboardEvent);

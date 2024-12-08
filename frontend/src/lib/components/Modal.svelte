@@ -43,8 +43,8 @@
 </script>
 
 {#if show}
-    <div 
-        class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center modal-overlay"
+    <button 
+        class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-start justify-center pt-[20vh] modal-overlay"
         on:click={handleClickOutside}
     >
         <div 
@@ -83,5 +83,5 @@
                 </button>
             </div>
         </div>
-    </div>
+    </button>
 {/if}

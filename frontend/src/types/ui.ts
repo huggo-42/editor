@@ -1,3 +1,5 @@
+import type { service } from '@/lib/wailsjs/go/models'
+
 export interface Position {
     x: number;
     y: number;
@@ -12,11 +14,8 @@ export interface ContextMenuItem {
     disabled?: boolean;
 }
 
-import type { FileNode } from "./file.types";
-
 export interface SidebarState {
     collapsed: boolean;
     activeSection: 'files' | 'git';
-    fileTree: FileNode[];
     isAllCollapsed: boolean;
 }
