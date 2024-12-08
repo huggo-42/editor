@@ -10,5 +10,12 @@
   "author": {
     "name": "nathabonfim59",
     "email": "dev@nathabonfim59.com"
+  },
+  "info": {
+    "companyName": "EditAI",
+    "productName": "EditAI",
+    "productVersion": "0.1.3",
+    "copyright": "Copyright 2024 © - EditAI",
+    "comments": "An AI-powered code editor"
   }
 }
