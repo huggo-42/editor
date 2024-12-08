@@ -36,6 +36,27 @@ EditAI combines these technologies to create a high-performance editor with nati
 - **Terminal Execution and Debugging** 💻: Built-in terminal support for running commands and debugging directly within the editor
 - **Pinned Prompts** 📌: AI convention-based system for consistent and customizable AI interactions
 
+## Screenshots
+
+**Source control**
+
+
+![screenshot-2024-12-03-10-42-12](https://github.com/user-attachments/assets/75de0fac-547a-45d7-bdd1-e31843cefe26)
+
+**Command pallete**
+
+![screenshot-2024-12-03-10-40-10](https://github.com/user-attachments/assets/2d36dd1f-c0a9-4cd4-83a6-f5064c49a735)
+> With `Alt + J`, you can use "J" and "K" to move up and down. Yes, I'm a fellow vimmer 😎
+
+
+**Fuzzy finder**
+
+![screenshot-2024-12-03-11-27-56](https://github.com/user-attachments/assets/e18e7d38-aaf5-43e4-b5a9-6c1e932059eb)
+
+**Vim mode**
+![screenshot-2024-12-08-21-06-27](https://github.com/user-attachments/assets/57d1ccb9-a6e2-4e56-90e1-e28eae9382c7)
+
+
 ## Roadmap 🛣️
 
 MVP 1:
@@ -137,23 +158,6 @@ For development and debugging, use `make build-dev` which enables hot reload.
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
-
-## Screenshots
-
-**Source control**
-
-
-![screenshot-2024-12-03-10-42-12](https://github.com/user-attachments/assets/75de0fac-547a-45d7-bdd1-e31843cefe26)
-
-**Command pallete**
-
-![screenshot-2024-12-03-10-40-10](https://github.com/user-attachments/assets/2d36dd1f-c0a9-4cd4-83a6-f5064c49a735)
-> With `Alt + J`, you can use "J" and "K" to move up and down. Yes, I'm a fellow vimmer 😎
-
-
-**Fuzzy finder**
-
-![screenshot-2024-12-03-11-27-56](https://github.com/user-attachments/assets/e18e7d38-aaf5-43e4-b5a9-6c1e932059eb)
 
 
 ## License
