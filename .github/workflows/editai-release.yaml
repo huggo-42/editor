@@ -4,15 +4,17 @@ name: Release Build
 
 # Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request events but only for the "main" branch
+  # Triggers the workflow on push events for tags
   push:
     tags:
       - 'v*'
-    branches:
-      - 'release'
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -34,6 +36,13 @@ jobs:
           build: true
           wails-build-webview2: "embed"
           go-version: ^1.22
+      - name: Upload Release Artifact
+        uses: softprops/action-gh-release@v1
+        with:
+          files: "build/bin/editai"
+          name: "editai-${{ github.ref_name }}-linux-amd64"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   macos:
     runs-on: macos-latest
@@ -50,6 +59,13 @@ jobs:
           package: true
           build: true
           go-version: ^1.22
+      - name: Upload Release Artifact
+        uses: softprops/action-gh-release@v1
+        with:
+          files: "build/bin/editai"
+          name: "editai-${{ github.ref_name }}-darwin-universal"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   windows:
     runs-on: windows-latest
@@ -68,3 +84,10 @@ jobs:
           nsis: true
           wails-build-webview2: "embed"
           go-version: ^1.22
+      - name: Upload Release Artifact
+        uses: softprops/action-gh-release@v1
+        with:
+          files: "build/bin/editai.exe"
+          name: "editai-${{ github.ref_name }}-windows-amd64"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
