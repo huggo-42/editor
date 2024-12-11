@@ -1,4 +1,4 @@
-# Edit4I 🚀 (ed - di - tai)  [![Release Build](https://github.com/edit4i/editor/actions/workflows/editai-release.yaml/badge.svg)](https://github.com/edit4i/editor/actions/workflows/editai-release.yaml) ![GitHub Release](https://img.shields.io/github/v/release/edit4i/editor?include_prereleases)
+# Edit4I 🚀 (ed - di - tai)  [![Release Build](https://github.com/edit4i/editor/actions/workflows/editai-release.yaml/badge.svg)](https://github.com/edit4i/editor/actions/workflows/editai-release.yaml) [![GitHub Release](https://img.shields.io/github/v/release/edit4i/editor?include_prereleases)](https://github.com/edit4i/editor/releases)
 
 
 An AI-powered agentic editor that enhances your coding experience with intelligent context understanding and seamless workflow integration.
