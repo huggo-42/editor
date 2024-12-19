@@ -119,3 +119,23 @@ func (a *App) OpenConfigFile() (string, error) {
 	path := a.config.OpenConfigFile()
 	return path, nil
 }
+
+// CreateFile creates a new empty file
+func (a *App) CreateFile(path string) error {
+	return a.files.CreateFile(path)
+}
+
+// CreateDirectory creates a new directory
+func (a *App) CreateDirectory(path string) error {
+	return a.files.CreateDirectory(path)
+}
+
+// RenameFile renames a file or directory
+func (a *App) RenameFile(oldPath, newPath string) error {
+	return a.files.RenameFile(oldPath, newPath)
+}
+
+// DeleteFile deletes a file or directory
+func (a *App) DeleteFile(path string) error {
+	return a.files.DeleteFile(path)
+}

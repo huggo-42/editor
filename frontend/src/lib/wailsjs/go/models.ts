@@ -46,7 +46,7 @@ export namespace db {
 export namespace service {
 	
 	export class EditorConfig {
-	    // Go type: struct { Theme string "json:\"theme\" mapstructure:\"theme\""; FontSize int "json:\"fontSize\" mapstructure:\"fontSize\""; TabSize int "json:\"tabSize\" mapstructure:\"tabSize\""; WordWrap bool "json:\"wordWrap\" mapstructure:\"wordWrap\""; LineNumbers bool "json:\"lineNumbers\" mapstructure:\"lineNumbers\""; Minimap bool "json:\"minimap\" mapstructure:\"minimap\""; Vim struct { Enabled bool "json:\"enabled\" mapstructure:\"enabled\""; DefaultMode string "json:\"defaultMode\" mapstructure:\"defaultMode\"" } "json:\"vim\" mapstructure:\"vim\"" }
+	    // Go type: struct { Theme string "json:\"theme\" mapstructure:\"theme\""; FontSize int "json:\"fontSize\" mapstructure:\"fontSize\""; TabSize int "json:\"tabSize\" mapstructure:\"tabSize\""; WordWrap bool "json:\"wordWrap\" mapstructure:\"wordWrap\""; LineNumbers bool "json:\"lineNumbers\" mapstructure:\"lineNumbers\""; RelativeLines bool "json:\"relativeLines\" mapstructure:\"relativeLines\""; Minimap bool "json:\"minimap\" mapstructure:\"minimap\""; StickyScroll bool "json:\"stickyScroll\" mapstructure:\"stickyScroll\""; Vim struct { Enabled bool "json:\"enabled\" mapstructure:\"enabled\""; DefaultMode string "json:\"defaultMode\" mapstructure:\"defaultMode\"" } "json:\"vim\" mapstructure:\"vim\"" }
 	    editor: any;
 	    keyboard: struct { CustomBindings map[string]service.;
 	

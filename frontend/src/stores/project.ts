@@ -88,7 +88,10 @@ function createProjectStore() {
         async setCurrentProject(project: db.Project) {
             update(state => ({ ...state, loading: true, error: null }));
             try {
-                await fileStore.loadProjectFiles(project.Path);
+                // First set the current project path in fileStore to handle open files
+                await fileStore.setCurrentProject(project.Path);
+                
+                // Then update the project store state
                 update(state => ({
                     ...state,
                     currentProject: project,

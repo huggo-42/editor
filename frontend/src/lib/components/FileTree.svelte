@@ -32,28 +32,47 @@
         contextMenu.show = false;
     }
 
-    function handleContextMenuAction(action: string) {
+    async function handleContextMenuAction(action: string) {
         if (!contextMenu.targetItem) return;
+
+        const path = contextMenu.targetItem.path;
+        const parentPath = path.substring(0, path.lastIndexOf('/'));
 
         switch (action) {
             case 'rename':
-                // TODO: Implement rename
+                // Trigger rename mode in FileTreeItem
+                const item = contextMenu.targetItem;
+                if (item) {
+                    item.isRenaming = true;
+                }
                 break;
             case 'delete':
-                // TODO: Implement delete
+                if (confirm(`Are you sure you want to delete ${contextMenu.targetItem.name}?`)) {
+                    await fileStore.deleteFile(path);
+                }
                 break;
             case 'newFile':
-                // TODO: Implement new file
+                const fileName = prompt('Enter file name:');
+                if (fileName) {
+                    const newPath = `${path}/${fileName}`;
+                    await fileStore.createFile(newPath);
+                }
                 break;
             case 'newFolder':
-                // TODO: Implement new folder
+                const folderName = prompt('Enter folder name:');
+                if (folderName) {
+                    const newPath = `${path}/${folderName}`;
+                    await fileStore.createDirectory(newPath);
+                }
                 break;
         }
         handleCloseContextMenu();
     }
 
-    function handleRename(path: string, newName: string) {
-        // TODO: Implement rename logic
+    async function handleRename(path: string, newName: string) {
+        const parentPath = path.substring(0, path.lastIndexOf('/'));
+        const newPath = `${parentPath}/${newName}`;
+        await fileStore.renameFile(path, newPath);
     }
 </script>
 

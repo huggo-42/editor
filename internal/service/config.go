@@ -15,7 +15,9 @@ type EditorConfig struct {
 		TabSize     int    `json:"tabSize" mapstructure:"tabSize"`
 		WordWrap    bool   `json:"wordWrap" mapstructure:"wordWrap"`
 		LineNumbers bool   `json:"lineNumbers" mapstructure:"lineNumbers"`
+		RelativeLines bool   `json:"relativeLines" mapstructure:"relativeLines"`
 		Minimap     bool   `json:"minimap" mapstructure:"minimap"`
+		StickyScroll bool   `json:"stickyScroll" mapstructure:"stickyScroll"`
 		Vim         struct {
 			Enabled     bool   `json:"enabled" mapstructure:"enabled"`
 			DefaultMode string `json:"defaultMode" mapstructure:"defaultMode"`
@@ -97,7 +99,9 @@ func createDefaultConfig(path string) error {
   tabSize: 4
   wordWrap: true
   lineNumbers: true
+  relativeLines: false
   minimap: false
+  stickyScroll: false
   vim:
     enabled: false
     mode: normal

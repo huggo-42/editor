@@ -51,6 +51,22 @@
 
     function setActiveTab(id: string) {
         fileStore.setActiveFile(id);
+        scrollToTab(id);
+    }
+
+    function scrollToTab(id: string) {
+        if (tabsContainer) {
+            // Find the tab element
+            const tabElement = tabsContainer.querySelector(`[data-tab-id="${id}"]`);
+            if (tabElement) {
+                tabElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+            }
+        }
+    }
+
+    // Watch for active file changes
+    $: if ($fileStore.activeFilePath) {
+        scrollToTab($fileStore.activeFilePath);
     }
 
     function handleCloseTab(id: string) {
@@ -105,13 +121,20 @@
         
         setKeyboardContext('editor');
         registerCommand('file.showFileFinder', () => showFileFinder = true);
+        
+        // Register sidebar toggle commands
+        registerCommand('view.toggleLeftSidebar', () => {
+            leftSidebarState.collapsed = !leftSidebarState.collapsed;
+        });
+        registerCommand('view.toggleRightSidebar', () => {
+            rightSidebarCollapsed = !rightSidebarCollapsed;
+        });
     });
 
     onDestroy(() => {
         setKeyboardContext('global');
     });
 
-    $: console.log($fileStore);
 </script>
 
 <div class="flex flex-col h-screen bg-gray-900 text-gray-300">
@@ -153,6 +176,7 @@
                 >
                     {#each tabs as tab (tab.id)}
                         <button
+                            data-tab-id={tab.id}
                             class="flex items-center h-[34px] px-4 border-r border-gray-800 cursor-pointer relative
                                 {tab.active
                                     ? 'bg-gray-900 before:absolute before:top-0 before:left-0 before:right-0 before:h-[2px] before:bg-sky-500'
@@ -218,7 +242,11 @@
     
     <BottomBar />
 
-    <FileFinder bind:show={showFileFinder} on:close={() => showFileFinder = false} />
+    <FileFinder 
+        bind:show={showFileFinder} 
+        on:close={() => showFileFinder = false} 
+        on:select={({ detail }) => scrollToTab(detail.path)}
+    />
     
     <Modal
         bind:show={showCloseConfirmModal}

@@ -82,7 +82,7 @@ const defaultKeybindings: KeyBindingConfig = {
     'view.toggleRightSidebar': {
         defaultBinding: {
             key: 'b',
-            modifiers: ['ctrl', 'shift'],
+            modifiers: ['ctrl', 'alt'],
             description: 'Toggle Right Sidebar',
             category: 'View',
             context: ['global']
@@ -247,7 +247,87 @@ const defaultKeybindings: KeyBindingConfig = {
                 console.error('Error opening config file:', error);
             }
         }
-    }
+    },
+    // Tab cycling
+    'cycleNextTab': {
+        defaultBinding: {
+            key: 'tab',
+            modifiers: ['ctrl'],
+            description: 'Cycle to next tab',
+            category: 'Tabs',
+            context: ['editor']
+        },
+        action: () => {
+            const openFiles = get(fileStore).openFiles;
+            const currentFile = fileStore.getActiveFilepath();
+            
+            if (!currentFile || openFiles.size <= 1) return;
+            
+            const files = Array.from(openFiles.keys());
+            const currentIndex = files.indexOf(currentFile);
+            const nextIndex = (currentIndex + 1) % files.length;
+            
+            fileStore.openFile(files[nextIndex]);
+        }
+    },
+    'cyclePrevTab': {
+        defaultBinding: {
+            key: 'tab',
+            modifiers: ['ctrl', 'shift'],
+            description: 'Cycle to previous tab',
+            category: 'Tabs',
+            context: ['editor']
+        },
+        action: () => {
+            const openFiles = get(fileStore).openFiles;
+            const currentFile = fileStore.getActiveFilepath();
+            
+            if (!currentFile || openFiles.size <= 1) return;
+            
+            const files = Array.from(openFiles.keys());
+            const currentIndex = files.indexOf(currentFile);
+            const prevIndex = (currentIndex - 1 + files.length) % files.length;
+            
+            fileStore.openFile(files[prevIndex]);
+        }
+    },
+    // Direct tab selection (max 9)
+    ...Array.from({ length: Math.min(9, get(fileStore).openFiles.size) }, (_, i) => ({
+        [`goToTab${i + 1}`]: {
+            defaultBinding: {
+                key: String(i + 1),
+                modifiers: ['alt'],
+                description: `Go to tab ${i + 1}`,
+                category: 'Tabs',
+                context: ['editor']
+            },
+            action: () => {
+                const openFiles = get(fileStore).openFiles;
+                const files = Array.from(openFiles.keys());
+                
+                if (i < files.length) {
+                    fileStore.openFile(files[i]);
+                }
+            }
+        }
+    })).reduce((acc, binding) => ({ ...acc, ...binding }), {}),
+
+    // Fuzzy finder quick selection (1-9)
+    ...Array.from({ length: 9 }, (_, i) => ({
+        [`fuzzyFinderSelect${i + 1}`]: {
+            defaultBinding: {
+                key: String(i + 1),
+                modifiers: ['alt'],
+                description: `Select result ${i + 1}`,
+                category: 'File Finder',
+                context: ['fileFinder']
+            },
+            action: () => {
+                // Action will be handled by the FileFinder component
+                // since it needs access to the current results
+            }
+        }
+    })).reduce((acc, binding) => ({ ...acc, ...binding }), {}),
 };
 
 // Store for custom keybindings
@@ -360,18 +440,9 @@ export function handleKeyboardEvent(event: KeyboardEvent) {
   }
 
     const currentBindings = get(keyBindings);
-    console.log('Handling keyboard event:', {
-        key: event.key,
-        ctrl: event.ctrlKey,
-        shift: event.shiftKey,
-        alt: event.altKey
-    });
-    console.log('Available bindings:', Object.keys(currentBindings));
 
     for (const [command, binding] of Object.entries(currentBindings)) {
-        console.log('Checking binding:', command, binding);
         if (matchesKeybinding(event, binding)) {
-            console.log('Matched binding:', command);
             event.preventDefault();
             binding.action();
             return;

@@ -6,6 +6,18 @@ export function AddProject(arg1, arg2) {
   return window['go']['main']['App']['AddProject'](arg1, arg2);
 }
 
+export function CreateDirectory(arg1) {
+  return window['go']['main']['App']['CreateDirectory'](arg1);
+}
+
+export function CreateFile(arg1) {
+  return window['go']['main']['App']['CreateFile'](arg1);
+}
+
+export function DeleteFile(arg1) {
+  return window['go']['main']['App']['DeleteFile'](arg1);
+}
+
 export function GetEditorConfig() {
   return window['go']['main']['App']['GetEditorConfig']();
 }
@@ -36,6 +48,10 @@ export function OpenConfigFile() {
 
 export function OpenProjectFolder() {
   return window['go']['main']['App']['OpenProjectFolder']();
+}
+
+export function RenameFile(arg1, arg2) {
+  return window['go']['main']['App']['RenameFile'](arg1, arg2);
 }
 
 export function SaveFile(arg1, arg2) {

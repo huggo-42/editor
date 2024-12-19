@@ -12,6 +12,7 @@ import (
 
 	ignore "github.com/sabhiram/go-gitignore"
 	"github.com/sahilm/fuzzy"
+	"io/fs"
 )
 
 // FileNode represents a file or directory in the project
@@ -51,52 +52,10 @@ func (s *FileService) GetProjectFiles(projectPath string) (*FileNode, error) {
 	}
 	s.cacheLock.RUnlock()
 
-	// Create root node
-	root := &FileNode{
-		Name: filepath.Base(projectPath),
-		Path: projectPath,
-		Type: "directory",
-	}
-
-	// Read directory contents
-	entries, err := os.ReadDir(projectPath)
+	// Build only top level tree initially
+	root, err := s.buildTopLevelTree(projectPath)
 	if err != nil {
 		return nil, err
-	}
-
-	// Process entries
-	for _, entry := range entries {
-		childPath := filepath.Join(projectPath, entry.Name())
-		
-		// Skip if ignored
-		if s.isIgnored(projectPath, childPath) {
-			continue
-		}
-
-		// Create child node
-		child := &FileNode{
-			Name: entry.Name(),
-			Path: childPath,
-		}
-
-		if entry.IsDir() {
-			child.Type = "directory"
-			// Recursively process subdirectory
-			childNode, err := s.GetProjectFiles(childPath)
-			if err != nil {
-				continue
-			}
-			child = childNode
-		} else {
-			child.Type = "file"
-			info, err := entry.Info()
-			if err == nil {
-				child.Size = info.Size()
-				child.LastModified = info.ModTime()
-			}
-		}
-
-		root.Children = append(root.Children, child)
 	}
 
 	// Sort children
@@ -328,62 +287,64 @@ func (s *FileService) SearchFiles(ctx context.Context, dirPath, query string) ([
 	var allFiles []*FileNode
 	var searchPaths []string
 
-	// Get the file tree
-	root, err := s.GetProjectFiles(dirPath)
-	if err != nil {
-		return nil, err
-	}
-
-	// Debug: Print root structure
-	fmt.Printf("Root node: %s, Type: %s, Children: %d\n", root.Name, root.Type, len(root.Children))
-
-	// Collect all files recursively
-	var collectFiles func(*FileNode, string)
-	collectFiles = func(node *FileNode, currentPath string) {
-		if node == nil {
-			return
+	// Walk the directory tree
+	err := filepath.WalkDir(dirPath, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
 		}
 
 		// Check for cancellation
 		select {
 		case <-ctx.Done():
-			return
+			return ctx.Err()
 		default:
 		}
 
-		// Build the current path
-		nodePath := filepath.Join(currentPath, node.Name)
-		
-		// Debug: Print current node
-		fmt.Printf("Processing node: %s, Type: %s, Path: %s\n", node.Name, node.Type, nodePath)
+		// Skip if ignored
+		if s.isIgnored(dirPath, path) {
+			if d.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
+		}
 
-		// Process current node if it's a file
-		if node.Type == "file" && !s.isIgnored(dirPath, node.Path) {
-			// Create relative path by removing project base path
-			relPath := strings.TrimPrefix(node.Path, dirPath)
-			relPath = strings.TrimPrefix(relPath, "/")
-			fmt.Printf("Adding file: %s, RelPath: %s\n", node.Name, relPath)
+		// Skip directories in the results
+		if d.IsDir() {
+			return nil
+		}
+
+		// Get file info
+		info, err := d.Info()
+		if err != nil {
+			return nil
+		}
+
+		// Create file node
+		node := &FileNode{
+			Name:         d.Name(),
+			Path:         path,
+			Type:         "file",
+			Size:         info.Size(),
+			LastModified: info.ModTime(),
+			IsLoaded:     true,
+		}
+
+		// Get relative path for search
+		relPath, err := filepath.Rel(dirPath, path)
+		if err == nil {
 			searchPaths = append(searchPaths, relPath)
 			allFiles = append(allFiles, node)
 		}
+		return nil
+	})
 
-		// Process all children regardless of type
-		if node.Children != nil {
-			for _, child := range node.Children {
-				collectFiles(child, nodePath)
-			}
-		}
+	if err != nil {
+		return nil, err
 	}
-
-	// Start traversal from root only
-	collectFiles(root, "")
 
 	if ctx.Err() != nil {
 		return nil, ctx.Err()
 	}
-
-	fmt.Printf("Total files collected: %d\n", len(allFiles))
-	fmt.Printf("Search paths: %v\n", searchPaths)
 
 	// If no query, return first 10 files
 	if query == "" || len(allFiles) == 0 {
@@ -396,7 +357,6 @@ func (s *FileService) SearchFiles(ctx context.Context, dirPath, query string) ([
 
 	// Use fuzzy library to search
 	matches := fuzzy.Find(query, searchPaths)
-	fmt.Printf("Fuzzy matches found: %d\n", len(matches))
 
 	// Sort matches by score (already done by fuzzy.Find)
 	results := make([]*FileNode, 0, len(matches))
@@ -412,7 +372,6 @@ func (s *FileService) SearchFiles(ctx context.Context, dirPath, query string) ([
 			continue
 		}
 
-		fmt.Printf("Match: %s (Score: %d)\n", searchPaths[match.Index], match.Score)
 		results = append(results, allFiles[match.Index])
 		seen[allFiles[match.Index].Path] = true
 	}
@@ -440,4 +399,92 @@ func (s *FileService) sortFileTree(node *FileNode) {
 		// If types are the same, sort by name
 		return node.Children[i].Name < node.Children[j].Name
 	})
+}
+
+// CreateFile creates a new empty file
+func (s *FileService) CreateFile(path string) error {
+	// Check if file already exists
+	if _, err := os.Stat(path); err == nil {
+		return fmt.Errorf("file already exists: %s", path)
+	}
+
+	// Create parent directories if they don't exist
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return fmt.Errorf("failed to create directories: %v", err)
+	}
+
+	// Create empty file
+	f, err := os.Create(path)
+	if err != nil {
+		return fmt.Errorf("failed to create file: %v", err)
+	}
+	defer f.Close()
+
+	// Invalidate cache for the project
+	s.InvalidateCache(filepath.Dir(path))
+	return nil
+}
+
+// CreateDirectory creates a new directory
+func (s *FileService) CreateDirectory(path string) error {
+	// Check if directory already exists
+	if _, err := os.Stat(path); err == nil {
+		return fmt.Errorf("directory already exists: %s", path)
+	}
+
+	// Create directory and parents
+	if err := os.MkdirAll(path, 0755); err != nil {
+		return fmt.Errorf("failed to create directory: %v", err)
+	}
+
+	// Invalidate cache for the project
+	s.InvalidateCache(filepath.Dir(path))
+	return nil
+}
+
+// RenameFile renames a file or directory
+func (s *FileService) RenameFile(oldPath, newPath string) error {
+	// Check if source exists
+	if _, err := os.Stat(oldPath); err != nil {
+		return fmt.Errorf("source not found: %s", oldPath)
+	}
+
+	// Check if target already exists
+	if _, err := os.Stat(newPath); err == nil {
+		return fmt.Errorf("target already exists: %s", newPath)
+	}
+
+	// Create parent directories if they don't exist
+	dir := filepath.Dir(newPath)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return fmt.Errorf("failed to create directories: %v", err)
+	}
+
+	// Rename file/directory
+	if err := os.Rename(oldPath, newPath); err != nil {
+		return fmt.Errorf("failed to rename: %v", err)
+	}
+
+	// Invalidate cache for both old and new parent directories
+	s.InvalidateCache(filepath.Dir(oldPath))
+	s.InvalidateCache(filepath.Dir(newPath))
+	return nil
+}
+
+// DeleteFile deletes a file or directory
+func (s *FileService) DeleteFile(path string) error {
+	// Check if path exists
+	if _, err := os.Stat(path); err != nil {
+		return fmt.Errorf("path not found: %s", path)
+	}
+
+	// Remove file or directory
+	if err := os.RemoveAll(path); err != nil {
+		return fmt.Errorf("failed to delete: %v", err)
+	}
+
+	// Invalidate cache for the parent directory
+	s.InvalidateCache(filepath.Dir(path))
+	return nil
 }

@@ -5,6 +5,12 @@ import {service} from '../models';
 
 export function AddProject(arg1:string,arg2:string):Promise<db.Project>;
 
+export function CreateDirectory(arg1:string):Promise<void>;
+
+export function CreateFile(arg1:string):Promise<void>;
+
+export function DeleteFile(arg1:string):Promise<void>;
+
 export function GetEditorConfig():Promise<service.EditorConfig>;
 
 export function GetFileContent(arg1:string):Promise<string>;
@@ -20,6 +26,8 @@ export function LoadDirectoryContents(arg1:string):Promise<service.FileNode>;
 export function OpenConfigFile():Promise<string>;
 
 export function OpenProjectFolder():Promise<string>;
+
+export function RenameFile(arg1:string,arg2:string):Promise<void>;
 
 export function SaveFile(arg1:string,arg2:string):Promise<void>;
 

@@ -1,6 +1,6 @@
 import { writable, get } from 'svelte/store';
 import type { service } from '@/lib/wailsjs/go/models';
-import { GetProjectFiles, GetFileContent, SaveFile } from '@/lib/wailsjs/go/main/App';
+import { GetProjectFiles, GetFileContent, SaveFile, CreateFile, CreateDirectory, RenameFile, DeleteFile, LoadDirectoryContents } from '@/lib/wailsjs/go/main/App';
 
 type FileNode = service.FileNode;
 
@@ -67,11 +67,31 @@ function createFileStore() {
 
         // Set current project
         setCurrentProject(projectPath: string) {
-            // Clear existing state when opening a new project
-            if (projectPath !== get({ subscribe }).currentProjectPath) {
-                this.clearState();
+            const state = get({ subscribe });
+            
+            // If changing projects, only keep open files from the new project
+            if (projectPath !== state.currentProjectPath) {
+                update(state => {
+                    const newOpenFiles = new Map();
+                    
+                    // Only keep files that belong to the new project
+                    state.openFiles.forEach((file, path) => {
+                        if (path.startsWith(projectPath)) {
+                            newOpenFiles.set(path, file);
+                        }
+                    });
+
+                    return {
+                        fileTree: null,
+                        activeFilePath: Array.from(newOpenFiles.keys())[0] || null,
+                        currentProjectPath: projectPath,
+                        openFiles: newOpenFiles,
+                        loading: false,
+                        error: null,
+                    };
+                });
             }
-            update(state => ({ ...state, currentProjectPath: projectPath }));
+
             return this.loadProjectFiles();
         },
 
@@ -214,6 +234,79 @@ function createFileStore() {
                     ...state,
                     error: err instanceof Error ? err.message : 'Failed to save file'
                 }));
+            }
+        },
+
+        // Create new file
+        async createFile(path: string): Promise<void> {
+            try {
+                await CreateFile(path);
+                await this.refreshFiles();
+            } catch (error) {
+                update(state => ({ ...state, error: `Failed to create file: ${error}` }));
+            }
+        },
+
+        // Create new directory
+        async createDirectory(path: string): Promise<void> {
+            try {
+                await CreateDirectory(path);
+                await this.refreshFiles();
+            } catch (error) {
+                update(state => ({ ...state, error: `Failed to create directory: ${error}` }));
+            }
+        },
+
+        // Rename file or directory
+        async renameFile(oldPath: string, newPath: string): Promise<void> {
+            try {
+                await RenameFile(oldPath, newPath);
+                await this.refreshFiles();
+            } catch (error) {
+                update(state => ({ ...state, error: `Failed to rename: ${error}` }));
+            }
+        },
+
+        // Delete file or directory
+        async deleteFile(path: string): Promise<void> {
+            try {
+                await DeleteFile(path);
+                await this.refreshFiles();
+            } catch (error) {
+                update(state => ({ ...state, error: `Failed to delete: ${error}` }));
+            }
+        },
+
+        // Load directory contents
+        async loadDirectoryContents(path: string) {
+            try {
+                const node = await LoadDirectoryContents(path);
+                
+                // Update the file tree with the new contents
+                update(state => {
+                    const updateNode = (nodes: FileNode[]) => {
+                        for (let i = 0; i < nodes.length; i++) {
+                            if (nodes[i].path === path) {
+                                nodes[i] = { ...nodes[i], ...node, isLoaded: true };
+                                return true;
+                            }
+                            if (nodes[i].children && updateNode(nodes[i].children)) {
+                                return true;
+                            }
+                        }
+                        return false;
+                    };
+
+                    if (state.fileTree) {
+                        updateNode(state.fileTree);
+                    }
+                    return state;
+                });
+
+                return node;
+            } catch (err) {
+                console.error('Failed to load directory contents:', err);
+                return null;
             }
         },
 

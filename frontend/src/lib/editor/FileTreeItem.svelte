@@ -21,8 +21,20 @@
 
     let isOpen = false;
     let isLoading = false;
+    let isRenaming = false;
     let editingName = item.name;
     let inputElement: HTMLInputElement;
+    let validationError = '';
+    let originalName = '';
+
+    // Validation rules
+    const isValidFileName = (name: string) => {
+        if (!name || name.trim() === '') return 'Name cannot be empty';
+        if (name.includes('/') || name.includes('\\')) return 'Name cannot contain slashes';
+        if (name === '.' || name === '..') return 'Invalid file name';
+        if (/[<>:"|?*]/.test(name)) return 'Name contains invalid characters';
+        return '';
+    };
 
     $: isDirectory = item.type === "directory";
     $: hasChildren = isDirectory && item.children && item.children.length > 0;
@@ -31,6 +43,13 @@
     $: {
         if (isAllCollapsed) {
             isOpen = false;
+        }
+    }
+
+    // Watch for isRenaming changes from parent
+    $: {
+        if (item.isRenaming && !isRenaming) {
+            startRename();
         }
     }
 
@@ -57,13 +76,52 @@
         }
     }
 
-    function handleRenameSubmit(e: Event) {
-        e.preventDefault();
-        onRename(item.path, editingName);
+    function startRename() {
+        isRenaming = true;
+        editingName = item.name;
+        // Focus and select text after the component updates
+        setTimeout(() => {
+            if (inputElement) {
+                inputElement.focus();
+                inputElement.select();
+            }
+        }, 0);
     }
 
-    function handleRenameChange(e: Event) {
-        editingName = (e.target as HTMLInputElement).value;
+    function handleRenameKeydown(e: KeyboardEvent) {
+        e.stopPropagation();
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            finishRename();
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            cancelRename();
+        }
+    }
+
+    function handleRenameInput() {
+        validationError = isValidFileName(editingName);
+    }
+
+    function finishRename() {
+        const error = isValidFileName(editingName);
+        if (error) {
+            validationError = error;
+            return;
+        }
+        if (editingName && editingName !== item.name) {
+            onRename(item.path, editingName);
+        }
+        isRenaming = false;
+        item.isRenaming = false;
+        validationError = '';
+    }
+
+    function cancelRename() {
+        editingName = item.name;
+        isRenaming = false;
+        item.isRenaming = false;
+        validationError = '';
     }
 </script>
 
@@ -83,7 +141,7 @@
         aria-expanded={item.type === 'directory' ? isOpen : undefined}
         aria-label={`${item.name} ${item.type}`}
     >
-        <div class="flex items-center flex-1 overflow-hidden"  style="padding-left: {depth * 0.5}rem">
+        <div class="flex items-center flex-1 overflow-hidden" style="padding-left: {depth * 0.5}rem">
             {#if isDirectory}
                 <div class="w-4 h-4 flex items-center justify-center">
                     {#if isLoading}
@@ -109,19 +167,29 @@
                 </div>
             {/if}
 
-            {#if item.isRenaming}
-                <form on:submit={handleRenameSubmit} class="flex-1">
+            {#if isRenaming}
+                <div class="relative flex-grow ml-2">
                     <input
                         bind:this={inputElement}
-                        type="text"
-                        class="w-full bg-gray-800 text-sm px-1 rounded"
-                        value={editingName}
-                        on:change={handleRenameChange}
-                        on:blur={() => onRename(item.path, editingName)}
+                        bind:value={editingName}
+                        on:blur={finishRename}
+                        on:keydown={handleRenameKeydown}
+                        on:input={handleRenameInput}
+                        class="w-full px-2 py-0.5 bg-gray-700 border rounded text-sm focus:outline-none
+                               {validationError ? 'border-red-500' : 'border-sky-500'} 
+                               hover:bg-gray-600 transition-colors duration-150"
+                        spellcheck="false"
                     />
-                </form>
+                    {#if validationError}
+                        <div class="absolute left-0 top-full mt-1 px-2 py-1 bg-red-900/90 text-xs text-red-200 rounded shadow-lg z-10">
+                            {validationError}
+                        </div>
+                    {/if}
+                </div>
             {:else}
-                <span class="ml-1 truncate">{item.name}</span>
+                <span class="ml-2 text-sm truncate" class:font-medium={isActive}>
+                    {item.name}
+                </span>
             {/if}
         </div>
     </div>
@@ -144,5 +212,15 @@
 <style>
     input {
         outline: none;
+    }
+
+    input::selection {
+        background-color: theme('colors.sky.900');
+        color: theme('colors.sky.100');
+    }
+
+    /* Prevent text selection while dragging */
+    span {
+        user-select: none;
     }
 </style>

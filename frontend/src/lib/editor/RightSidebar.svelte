@@ -84,7 +84,6 @@
               label: 'Settings',
               onClick: () => {
                 // TODO: Implement settings dialog
-                console.log('Open settings');
               }
             },
             {

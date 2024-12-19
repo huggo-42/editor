@@ -11,7 +11,9 @@ const defaultConfig: EditorConfig = {
         tabSize: 4,
         wordWrap: true,
         lineNumbers: true,
+        relativeLines: false,
         minimap: false,
+        stickyScroll: false,
         vim: {
             enabled: false,
             mode: 'normal'
