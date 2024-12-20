@@ -36,11 +36,14 @@ jobs:
           build: true
           wails-build-webview2: "embed"
           go-version: ^1.22
+      - name: Rename artifact
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          mv build/bin/editai "build/bin/editai-${VERSION}-linux-amd64"
       - name: Upload Release Artifact
         uses: softprops/action-gh-release@v1
         with:
-          files: "build/bin/editai"
-          name: "editai-${{ github.ref_name }}-linux-amd64"
+          files: "build/bin/editai-*-linux-amd64"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -59,11 +62,19 @@ jobs:
           package: true
           build: true
           go-version: ^1.22
-      - name: Upload Release Artifact
+      - name: Package macOS artifacts
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          cd build/bin
+          mv editai.app "editai-${VERSION}-mac.app"
+          zip -r "editai-${VERSION}-mac.app.zip" "editai-${VERSION}-mac.app"
+          mv editai.pkg "editai-${VERSION}-mac.pkg"
+      - name: Upload Release Artifacts
         uses: softprops/action-gh-release@v1
         with:
-          files: "build/bin/editai"
-          name: "editai-${{ github.ref_name }}-darwin-universal"
+          files: |
+            build/bin/editai-*-mac.app.zip
+            build/bin/editai-*-mac.pkg
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -76,7 +87,7 @@ jobs:
           submodules: recursive
       - uses: ./.github/actions/wails
         with:
-          build-name: editai.exe
+          build-name: editai
           build-platform: windows/amd64
           wails-version: "v2.9.2"
           package: true
@@ -84,10 +95,18 @@ jobs:
           nsis: true
           wails-build-webview2: "embed"
           go-version: ^1.22
-      - name: Upload Release Artifact
+      - name: Rename artifacts
+        shell: bash
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          cd build/bin
+          mv editai "editai-${VERSION}-windows-amd64-portable.exe"
+          mv editai-installer.exe "editai-${VERSION}-windows-amd64-installer.exe"
+      - name: Upload Release Artifacts
         uses: softprops/action-gh-release@v1
         with:
-          files: "build/bin/editai.exe"
-          name: "editai-${{ github.ref_name }}-windows-amd64"
+          files: |
+            build/bin/editai-*-windows-amd64-portable.exe
+            build/bin/editai-*-windows-amd64-installer.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
