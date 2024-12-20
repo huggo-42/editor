@@ -3,6 +3,8 @@ package service
 import (
 	"fmt"
 	"log"
+	"os"
+	"strings"
 	"sync"
 
 	"github.com/edit4i/editor/internal/terminal"
@@ -25,8 +27,8 @@ func NewTerminalService(onEvent func(id string, event *terminal.Event)) *Termina
 }
 
 // CreateTerminal creates a new terminal instance with the specified shell
-func (s *TerminalService) CreateTerminal(id string, shell string) error {
-	log.Printf("[TerminalService] Creating terminal: id=%s, shell=%s", id, shell)
+func (s *TerminalService) CreateTerminal(id string, shell string, cwd string) error {
+	log.Printf("[TerminalService] Creating terminal: id=%s, shell=%s, cwd=%s", id, shell, cwd)
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -49,6 +51,7 @@ func (s *TerminalService) CreateTerminal(id string, shell string) error {
 		Shell: shell,
 		Cols:  80,
 		Rows:  24,
+		Cwd:   cwd,
 	}, terminalEventHandler)
 	if err != nil {
 		log.Printf("[TerminalService] Failed to create terminal: %v", err)
@@ -142,4 +145,54 @@ func (s *TerminalService) HandleInput(id string, data []byte) error {
 	}
 
 	return term.HandleInput(data)
+}
+
+// GetAvailableShells returns a list of available shells, with the default shell as the first item
+func (s *TerminalService) GetAvailableShells() ([]string, error) {
+    // Get default shell from environment
+    defaultShell := os.Getenv("SHELL")
+    if defaultShell == "" {
+        defaultShell = "/bin/bash" // Fallback to bash if SHELL is not set
+    }
+
+    // Read /etc/shells
+    content, err := os.ReadFile("/etc/shells")
+    if err != nil {
+        return []string{defaultShell}, fmt.Errorf("failed to read /etc/shells: %w", err)
+    }
+
+    // Parse shells
+    shells := []string{}
+    lines := strings.Split(string(content), "\n")
+    for _, line := range lines {
+        // Skip comments and empty lines
+        line = strings.TrimSpace(line)
+        if line == "" || strings.HasPrefix(line, "#") {
+            continue
+        }
+        shells = append(shells, line)
+    }
+
+    // If default shell is not in the list, add it
+    found := false
+    for _, shell := range shells {
+        if shell == defaultShell {
+            found = true
+            break
+        }
+    }
+    if !found {
+        shells = append(shells, defaultShell)
+    }
+
+    // Move default shell to the front
+    result := make([]string, 0, len(shells))
+    result = append(result, defaultShell)
+    for _, shell := range shells {
+        if shell != defaultShell {
+            result = append(result, shell)
+        }
+    }
+
+    return result, nil
 }

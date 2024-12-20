@@ -9,11 +9,13 @@ export function CreateDirectory(arg1:string):Promise<void>;
 
 export function CreateFile(arg1:string):Promise<void>;
 
-export function CreateTerminal(arg1:string,arg2:string):Promise<void>;
+export function CreateTerminal(arg1:string,arg2:string,arg3:string):Promise<void>;
 
 export function DeleteFile(arg1:string):Promise<void>;
 
 export function DestroyTerminal(arg1:string):Promise<void>;
+
+export function GetAvailableShells():Promise<Array<string>>;
 
 export function GetEditorConfig():Promise<service.EditorConfig>;
 

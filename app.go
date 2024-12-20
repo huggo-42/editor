@@ -149,8 +149,8 @@ func (a *App) DeleteFile(path string) error {
 }
 
 // CreateTerminal creates a new terminal instance
-func (a *App) CreateTerminal(id string, shell string) error {
-	return a.terminalService.CreateTerminal(id, shell)
+func (a *App) CreateTerminal(id string, shell string, cwd string) error {
+	return a.terminalService.CreateTerminal(id, shell, cwd)
 }
 
 // DestroyTerminal destroys a terminal instance
@@ -166,4 +166,9 @@ func (a *App) ResizeTerminal(id string, cols int, rows int) error {
 // HandleInput handles terminal input from the frontend
 func (a *App) HandleInput(id string, data []byte) error {
 	return a.terminalService.HandleInput(id, data)
+}
+
+// GetAvailableShells returns a list of available shells, with the default shell as the first item
+func (a *App) GetAvailableShells() ([]string, error) {
+    return a.terminalService.GetAvailableShells()
 }

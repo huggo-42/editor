@@ -1,4 +1,7 @@
 import { writable, get } from 'svelte/store';
+import { projectStore } from './project';
+import { editorConfigStore } from '@/stores/editorConfigStore';
+import { GetAvailableShells } from '@/lib/wailsjs/go/main/App';
 
 export interface TerminalTab {
     id: string;
@@ -7,23 +10,30 @@ export interface TerminalTab {
     shell: string;
 }
 
-export const AVAILABLE_SHELLS = [
-    'bash',
-    'zsh',
-    'fish',
-    'sh'
-] as const;
+// Initialize with a default shell that will be updated
+export const availableShells = writable<string[]>(['/bin/bash']);
+
+// Load available shells on startup
+GetAvailableShells().then(shells => {
+    availableShells.set(shells);
+}).catch(err => {
+    console.error('Failed to get available shells:', err);
+});
 
 function createTerminalStore() {
-    const { subscribe, update, set } = writable<TerminalTab[]>([
-        { id: '1', name: 'Terminal 1', active: true, shell: 'bash' }
-    ]);
+    const { subscribe, update, set } = writable<TerminalTab[]>([]);
 
     return {
         subscribe,
-        addTab: (shell: string = 'bash') => {
-            let newId: string;
+        addTab: (shell: string = '') => {
+            let newId: string = '';
             update(tabs => {
+                // Get default shell from config or use first available shell
+                const config = get(editorConfigStore);
+                const currentShells = get(availableShells);
+                const defaultShell = config.terminal.DefaultShell || currentShells[0] || '/bin/sh';
+                const shellToUse = shell || defaultShell;
+                
                 // Deactivate all tabs
                 const updatedTabs = tabs.map(tab => ({ ...tab, active: false }));
                 // Add new tab
@@ -32,7 +42,7 @@ function createTerminalStore() {
                     id: newId, 
                     name: `Terminal ${tabs.length + 1}`, 
                     active: true,
-                    shell
+                    shell: shellToUse
                 }];
             });
             return newId;
