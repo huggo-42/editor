@@ -1,8 +1,8 @@
 <script lang="ts">
     import XtermComponent from '@/lib/terminal/XtermComponent.svelte';
-    import { terminalStore, availableShells } from '@/stores/terminalStore';
+    import { terminalStore, availableShells, terminalVisibility } from '@/stores/terminalStore';
     import { bottomPaneStore } from '@/stores/bottomPaneStore';
-    import { Plus, X, ChevronLeft, ChevronRight } from 'lucide-svelte';
+    import { Plus, X, ChevronLeft, ChevronRight, Terminal } from 'lucide-svelte';
     import Button from '@/lib/components/Button.svelte';
     import Select from '@/lib/components/Select.svelte';
     import { get } from 'svelte/store';
@@ -77,7 +77,14 @@
     }
 </script>
 
-<div class="h-full w-full bg-gray-800 overflow-hidden flex flex-col">
+<div class="h-full w-full bg-gray-800 overflow-hidden flex flex-col" class:hidden={!$terminalVisibility}>
+    <div class="flex items-center justify-between h-[35px] px-4 border-b border-gray-700">
+        <div class="flex items-center space-x-2">
+            <span class="text-sm font-medium flex gap-2">
+                <Terminal size={16} /> Terminal
+            </span>
+        </div>
+    </div>
     <div class="flex items-center border-b border-gray-700">
         <div 
             bind:this={tabsContainer}

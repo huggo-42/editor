@@ -1,7 +1,8 @@
 <script lang="ts">
-  import { ChevronLeft, ChevronRight, Search, GitBranch, Files, File } from 'lucide-svelte';
+  import { ChevronLeft, ChevronRight, Search, GitBranch, Files, File, Terminal } from 'lucide-svelte';
   import Input from '../components/Input.svelte';
   import { tooltip } from '@/lib/actions/tooltip';
+  import { terminalVisibility } from '@/stores/terminalStore';
 
   export let onToggleLeftSidebar: () => void;
   export let onToggleRightSidebar: () => void;
@@ -16,6 +17,10 @@
   export let modifiedFilesCount: number = 0;
 
   let searchQuery = '';
+
+  function toggleTerminal() {
+    terminalVisibility.update(v => !v);
+  }
 </script>
 
 <div class="h-12 bg-gray-900 border-b border-gray-700 flex items-center px-4">
@@ -49,6 +54,14 @@
           {modifiedFilesCount}
         </span>
       {/if}
+    </button>
+
+    <button
+      on:click={toggleTerminal}
+      class="p-2 hover:bg-gray-800 rounded-sm relative {$terminalVisibility ? 'bg-gray-800 text-gray-200' : 'text-gray-400'}"
+      use:tooltip={{ content: "Toggle Terminal", position: "bottom" }}
+    >
+      <Terminal size={16} />
     </button>
   </div>
 

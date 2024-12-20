@@ -4,6 +4,7 @@ import { fileStore } from './fileStore';
 import { OpenConfigFile } from '@/lib/wailsjs/go/main/App';
 import { push } from 'svelte-spa-router';
 import { WindowReloadApp } from '@/lib/wailsjs/runtime/runtime';
+import { terminalVisibility } from './terminalStore';
 
 // Default keybindings configuration
 const defaultKeybindings: KeyBindingConfig = {
@@ -363,7 +364,9 @@ const defaultKeybindings: KeyBindingConfig = {
             category: 'Terminal',
             context: ['global']
         },
-        action: () => {}
+        action: () => {
+            terminalVisibility.set(true);
+        }
     },
     'terminal.returnToPrevious': {
         defaultBinding: {
@@ -373,7 +376,9 @@ const defaultKeybindings: KeyBindingConfig = {
             category: 'Terminal',
             context: ['bottomPane']
         },
-        action: () => {}
+        action: () => {
+            terminalVisibility.update(v => !v);
+        }
     },
 };
 

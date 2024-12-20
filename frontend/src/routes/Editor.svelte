@@ -141,30 +141,17 @@
             // Save current focus
             focusStore.focus('editor', $fileStore.activeFilePath || 'editor');
             
-            // Show terminal
+            // Just set the active section, no collapsing
             bottomPaneStore.update(state => ({
                 ...state,
-                collapsed: false,
                 activeSection: 'terminal'
             }));
         });
 
         // Register return to previous shortcut
         registerCommand('terminal.returnToPrevious', () => {
-            const previous = get(focusStore).previousContext;
-            if (previous && previous.component === 'editor') {
-                // Collapse terminal
-                bottomPaneStore.update(state => ({
-                    ...state,
-                    collapsed: true
-                }));
-
-                // Focus editor and file
-                focusStore.restorePrevious();
-                if (previous.id !== 'editor') {
-                    fileStore.setActiveFile(previous.id);
-                }
-            }
+            // Just focus back, no collapsing
+            focusStore.restorePrevious();
         });
 
         registerCommand('file.showFileFinder', () => showFileFinder = true);

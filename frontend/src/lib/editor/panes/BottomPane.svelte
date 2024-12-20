@@ -4,7 +4,8 @@
     import type { BottomPaneState } from '@/types/ui';
     import TerminalPane from '@/lib/editor/panes/TerminalPane.svelte';
     import { bottomPaneStore } from '@/stores/bottomPaneStore';
-    import { FilesIcon, TerminalIcon } from 'lucide-svelte';
+    import { FilesIcon } from 'lucide-svelte';
+    import { terminalVisibility } from '@/stores/terminalStore';
 
     export let state: BottomPaneState;
     export let height: number;
@@ -27,21 +28,7 @@
     }
 </script>
 
-<div class="w-full flex flex-col overflow-hidden border-t border-gray-800" style="height: {height}px">
-    <div class="flex items-center justify-between h-[35px] px-4 border-b border-gray-800">
-        <div class="flex items-center space-x-2">
-            <span class="text-sm font-medium flex gap-2">
-                {#if state.activeSection === 'terminal'}
-                    <TerminalIcon size={16} /> Terminal
-                {:else if state.activeSection === 'problems'}
-                    <FilesIcon size={16} /> Problems
-                {:else if state.activeSection === 'output'}
-                    <FilesIcon size={16} /> Output
-                {/if}
-            </span>
-        </div>
-    </div>
-
+<div class="w-full flex flex-col overflow-hidden border-t border-gray-800" style="height: {!$terminalVisibility && state.activeSection === 'terminal' ? 0 : height}px">
     <div class="flex-1 overflow-auto">
         {#if state.activeSection === 'terminal'}
             <TerminalPane {height} />
