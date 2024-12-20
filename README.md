@@ -66,10 +66,10 @@ EditAI combines these technologies to create a high-performance editor with nati
 
 MVP 1:
 - [ ] Monaco Editor with Vim mode & Git integration (In progress 🏃)
-- [ ] File explorer with search
+- [x] File explorer with search
 - [ ] AI Integration (Copilot, OpenAI, Anthropic)
 - [ ] Basic context management
-- [ ] Integrated terminal with command execution
+- [x] Integrated terminal with command execution
 - [ ] CLI interface for core operations
 
 MVP 2:
