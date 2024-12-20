@@ -40,10 +40,12 @@
 
         switch (action) {
             case 'rename':
-                // Trigger rename mode in FileTreeItem
                 const item = contextMenu.targetItem;
                 if (item) {
-                    item.isRenaming = true;
+                    const fileTreeItem = document.querySelector(`[data-path="${item.path}"]`);
+                    if (fileTreeItem) {
+                        fileTreeItem.dispatchEvent(new CustomEvent('startRename'));
+                    }
                 }
                 break;
             case 'delete':
@@ -70,9 +72,14 @@
     }
 
     async function handleRename(path: string, newName: string) {
-        const parentPath = path.substring(0, path.lastIndexOf('/'));
-        const newPath = `${parentPath}/${newName}`;
-        await fileStore.renameFile(path, newPath);
+        try {
+            const parentPath = path.substring(0, path.lastIndexOf('/'));
+            const newPath = `${parentPath}/${newName}`;
+            await fileStore.renameFile(path, newPath);
+            await fileStore.refreshFiles();
+        } catch (error) {
+            console.error('Error renaming file:', error);
+        }
     }
 </script>
 
