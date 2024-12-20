@@ -6,6 +6,7 @@ toolchain go1.23.0
 
 require (
 	github.com/amacneil/dbmate/v2 v2.23.0
+	github.com/creack/pty v1.1.24
 	github.com/joho/godotenv v1.5.1
 	github.com/mattn/go-sqlite3 v1.14.24
 	github.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06

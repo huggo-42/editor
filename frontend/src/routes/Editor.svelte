@@ -1,7 +1,6 @@
 <script lang="ts">
     import { X, Circle, ChevronLeft, ChevronRight } from "lucide-svelte";
     import { onMount, onDestroy } from 'svelte';
-    import type { Tab } from "@/types/editor";
     import type { SidebarState } from "@/types/ui";
     import LeftSidebar from "@/lib/editor/LeftSidebar.svelte";
     import RightSidebar from "@/lib/editor/RightSidebar.svelte";
@@ -15,6 +14,9 @@
     import Editor from "@/lib/editor/Editor.svelte";
     import FileFinder from "@/lib/components/FileFinder.svelte";
     import Modal from "@/lib/components/Modal.svelte";
+    import BottomPane from "@/lib/editor/panes/BottomPane.svelte";
+    import { bottomPaneStore } from '@/stores/bottomPaneStore';
+    import { focusStore } from '@/stores/focusStore';
 
     // Convert open files to tabs
     $: tabs = Array.from($fileStore.openFiles.entries()).map(([path, file]) => ({
@@ -37,9 +39,13 @@
     let showCommandPalette = false;
     let showFileFinder = false;
 
-    // Sidebar widths
+    // Bottom pane state
+    let bottomPaneState = $bottomPaneStore;
+
+    // Sidebar widths and heights
     let leftSidebarWidth = 300;
     let rightSidebarWidth = 600;
+    let bottomPaneHeight = 300;
 
     // Source control state
     let modifiedFilesCount = 2;
@@ -59,14 +65,23 @@
             // Find the tab element
             const tabElement = tabsContainer.querySelector(`[data-tab-id="${id}"]`);
             if (tabElement) {
-                tabElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+                const containerWidth = tabsContainer.offsetWidth;
+                const tabWidth = (tabElement as HTMLElement).offsetWidth;
+                const tabLeft = (tabElement as HTMLElement).offsetLeft;
+                const scrollLeft = tabLeft - (containerWidth - tabWidth) / 2;
+                
+                tabsContainer.scrollTo({
+                    left: scrollLeft,
+                    behavior: 'smooth'
+                });
             }
         }
     }
 
     // Watch for active file changes
     $: if ($fileStore.activeFilePath) {
-        scrollToTab($fileStore.activeFilePath);
+        // Wait for the DOM to update before scrolling
+        setTimeout(() => scrollToTab($fileStore.activeFilePath), 0);
     }
 
     function handleCloseTab(id: string) {
@@ -113,13 +128,45 @@
         }
     }
 
-    onMount(async () => {
+    onMount(() => {
         const state = get(projectStore);
         if (state.currentProject?.Path) {
-            await fileStore.loadProjectFiles(state.currentProject.Path);
+            fileStore.loadProjectFiles(state.currentProject.Path);
         }
         
-        setKeyboardContext('editor');
+        setKeyboardContext('global');
+
+        // Register terminal shortcut
+        registerCommand('terminal.open', () => {
+            // Save current focus
+            focusStore.focus('editor', $fileStore.activeFilePath || 'editor');
+            
+            // Show terminal
+            bottomPaneStore.update(state => ({
+                ...state,
+                collapsed: false,
+                activeSection: 'terminal'
+            }));
+        });
+
+        // Register return to previous shortcut
+        registerCommand('terminal.returnToPrevious', () => {
+            const previous = get(focusStore).previousContext;
+            if (previous && previous.component === 'editor') {
+                // Collapse terminal
+                bottomPaneStore.update(state => ({
+                    ...state,
+                    collapsed: true
+                }));
+
+                // Focus editor and file
+                focusStore.restorePrevious();
+                if (previous.id !== 'editor') {
+                    fileStore.setActiveFile(previous.id);
+                }
+            }
+        });
+
         registerCommand('file.showFileFinder', () => showFileFinder = true);
         
         // Register sidebar toggle commands
@@ -154,16 +201,15 @@
     
     <div class="flex flex-1 overflow-hidden">
         {#if !leftSidebarState.collapsed}
-            <div style="width: {leftSidebarWidth}px" class="flex-shrink-0">
+            <div class="h-full" style="width: {leftSidebarWidth}px">
                 <LeftSidebar state={leftSidebarState} />
             </div>
-            <ResizeHandle 
-                side="left" 
-                currentWidth={leftSidebarWidth}
-                onResize={(width) => {
-                    leftSidebarWidth = width;
-                    handleResize();
-                }}
+            <ResizeHandle
+                orientation="vertical"
+                side="right"
+                bind:size={leftSidebarWidth}
+                minSize={200}
+                maxSize={600}
             />
         {/if}
 
@@ -219,22 +265,30 @@
                 </div>
             </div>
 
-            <Editor
-                on:showFileFinder={() => showFileFinder = true}
-            />
-            
-         </main>
+            <div class="flex-1 relative overflow-hidden">
+                <Editor />
+            </div>
+            {#if !$bottomPaneStore.collapsed}
+                <ResizeHandle 
+                    orientation="horizontal" 
+                    side="top"
+                    bind:size={bottomPaneHeight}
+                    minSize={100} 
+                    maxSize={800}
+                />
+                <BottomPane state={$bottomPaneStore} height={bottomPaneHeight} />
+            {/if}
+        </main>
         
         {#if !rightSidebarCollapsed}
-            <ResizeHandle 
-                side="right" 
-                currentWidth={rightSidebarWidth}
-                onResize={(width) => {
-                    rightSidebarWidth = width;
-                    handleResize();
-                }}
+            <ResizeHandle
+                orientation="vertical"
+                side="left"
+                bind:size={rightSidebarWidth}
+                minSize={200}
+                maxSize={800}
             />
-            <div style="width: {rightSidebarWidth}px" class="flex-shrink-0">
+            <div class="h-full" style="width: {rightSidebarWidth}px">
                 <RightSidebar collapsed={rightSidebarCollapsed} />
             </div>
         {/if}
