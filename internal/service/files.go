@@ -243,8 +243,35 @@ func (s *FileService) SaveFile(path string, content string) error {
 // InvalidateCache removes a project's file tree from cache
 func (s *FileService) InvalidateCache(projectPath string) {
 	s.cacheLock.Lock()
-	delete(s.cache, projectPath)
-	s.cacheLock.Unlock()
+	defer s.cacheLock.Unlock()
+
+	// Invalidate any node that contains this path
+	for rootPath, root := range s.cache {
+		if strings.HasPrefix(projectPath, rootPath) {
+			s.invalidateNode(root, projectPath)
+		}
+	}
+}
+
+// invalidateNode recursively unsets the isLoaded flag for a path and its parents
+func (s *FileService) invalidateNode(node *FileNode, targetPath string) bool {
+	if node.Path == targetPath {
+		node.IsLoaded = false
+		return true
+	}
+
+	if node.Children != nil {
+		for _, child := range node.Children {
+			if strings.HasPrefix(targetPath, child.Path) {
+				if s.invalidateNode(child, targetPath) {
+					// If child was invalidated, also invalidate parent
+					node.IsLoaded = false
+					return true
+				}
+			}
+		}
+	}
+	return false
 }
 
 // loadGitIgnore loads the gitignore file for a directory if it exists

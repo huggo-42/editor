@@ -2,6 +2,8 @@ import { writable, derived, get } from 'svelte/store';
 import type { KeyBinding, KeyBindingConfig, KeyboardContext } from '@/types/keyboard';
 import { fileStore } from './fileStore';
 import { OpenConfigFile } from '@/lib/wailsjs/go/main/App';
+import { push } from 'svelte-spa-router';
+import { WindowReloadApp } from '@/lib/wailsjs/runtime/runtime';
 
 // Default keybindings configuration
 const defaultKeybindings: KeyBindingConfig = {
@@ -246,6 +248,30 @@ const defaultKeybindings: KeyBindingConfig = {
             } catch (error) {
                 console.error('Error opening config file:', error);
             }
+        }
+    },
+    'project.goToSelector': {
+        defaultBinding: {
+            key: 'h',
+            modifiers: ['ctrl', 'shift'],
+            description: 'Go to Project Selector',
+            category: 'Project',
+            context: ['global']
+        },
+        action: () => {
+            push("/");
+        }
+    },
+    'editor.reload': {
+        defaultBinding: {
+            key: 'r',
+            modifiers: ['ctrl', 'shift'],
+            description: 'Reload Editor',
+            category: 'General',
+            context: ['global']
+        },
+        action: () => {
+            WindowReloadApp();
         }
     },
     // Tab cycling

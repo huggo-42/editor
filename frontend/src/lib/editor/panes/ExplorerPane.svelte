@@ -7,7 +7,6 @@
 
     type FileNode = service.FileNode;
     
-    export let fileTree: FileNode[] = [];
     let isAllCollapsed = false;
     let collapseCounter = 0;  // Add a counter to force re-collapse
 
@@ -45,6 +44,6 @@
         </div>
     </div>
     <div class="flex-1 overflow-auto">
-        <FileTree {fileTree} bind:isAllCollapsed key={collapseCounter} />
+        <FileTree bind:isAllCollapsed key={collapseCounter} />
     </div>
 </div>

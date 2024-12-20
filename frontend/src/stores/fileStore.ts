@@ -116,6 +116,7 @@ function createFileStore() {
                     error: err instanceof Error ? err.message : 'Failed to load project files',
                     loading: false
                 }));
+                throw err;
             }
         },
 
@@ -169,7 +170,11 @@ function createFileStore() {
 
         // Refresh files
         async refreshFiles() {
-            return this.loadProjectFiles();
+            const state = get({ subscribe });
+            if (!state.currentProjectPath) return;
+            
+            // Force a complete refresh of the project
+            await this.loadProjectFiles(state.currentProjectPath);
         },
 
         // Set active file
@@ -241,9 +246,9 @@ function createFileStore() {
         async createFile(path: string): Promise<void> {
             try {
                 await CreateFile(path);
-                await this.refreshFiles();
             } catch (error) {
                 update(state => ({ ...state, error: `Failed to create file: ${error}` }));
+                throw error;
             }
         },
 
@@ -251,19 +256,31 @@ function createFileStore() {
         async createDirectory(path: string): Promise<void> {
             try {
                 await CreateDirectory(path);
-                await this.refreshFiles();
             } catch (error) {
                 update(state => ({ ...state, error: `Failed to create directory: ${error}` }));
+                throw error;
             }
         },
 
-        // Rename file or directory
+        // Rename/Move file or directory
         async renameFile(oldPath: string, newPath: string): Promise<void> {
             try {
                 await RenameFile(oldPath, newPath);
+                // Get both parent directories
+                const oldParentPath = oldPath.substring(0, oldPath.lastIndexOf("/"));
+                const newParentPath = newPath.substring(0, newPath.lastIndexOf("/"));
+                
+                // Refresh both parent directories
+                await this.loadDirectoryContents(oldParentPath);
+                if (oldParentPath !== newParentPath) {
+                    await this.loadDirectoryContents(newParentPath);
+                }
+                
+                // Then refresh the entire tree to ensure consistency
                 await this.refreshFiles();
             } catch (error) {
-                update(state => ({ ...state, error: `Failed to rename: ${error}` }));
+                update(state => ({ ...state, error: `Failed to rename/move: ${error}` }));
+                throw error;
             }
         },
 
@@ -271,42 +288,59 @@ function createFileStore() {
         async deleteFile(path: string): Promise<void> {
             try {
                 await DeleteFile(path);
-                await this.refreshFiles();
+                // After deletion, get the parent directory path
+                const parentPath = path.substring(0, path.lastIndexOf("/"));
+                
+                // First refresh the parent directory
+                await this.loadDirectoryContents(parentPath);
+                
+                // Then refresh the entire tree to ensure consistency
+                await this.loadProjectFiles();
             } catch (error) {
                 update(state => ({ ...state, error: `Failed to delete: ${error}` }));
+                throw error; // Re-throw to allow handling in the UI
             }
         },
 
         // Load directory contents
-        async loadDirectoryContents(path: string) {
+        async loadDirectoryContents(dirPath: string) {
+            update(state => ({ ...state, loading: true, error: null }));
             try {
-                const node = await LoadDirectoryContents(path);
-                
-                // Update the file tree with the new contents
+                const updatedNode = await LoadDirectoryContents(dirPath);
+                if (!updatedNode) return;
+
+                // Update the node in the file tree
                 update(state => {
-                    const updateNode = (nodes: FileNode[]) => {
-                        for (let i = 0; i < nodes.length; i++) {
-                            if (nodes[i].path === path) {
-                                nodes[i] = { ...nodes[i], ...node, isLoaded: true };
-                                return true;
+                    const updateNodeInTree = (nodes: FileNode[] | null): FileNode[] | null => {
+                        if (!nodes) return null;
+                        return nodes.map(node => {
+                            if (node.path === dirPath) {
+                                return { ...updatedNode, isLoaded: true };
                             }
-                            if (nodes[i].children && updateNode(nodes[i].children)) {
-                                return true;
+                            if (node.type === "directory" && node.children) {
+                                const updatedChildren = updateNodeInTree(node.children);
+                                if (updatedChildren !== node.children) {
+                                    return { ...node, children: updatedChildren };
+                                }
                             }
-                        }
-                        return false;
+                            return node;
+                        });
                     };
 
-                    if (state.fileTree) {
-                        updateNode(state.fileTree);
-                    }
-                    return state;
+                    const updatedTree = updateNodeInTree(state.fileTree);
+                    return {
+                        ...state,
+                        fileTree: updatedTree,
+                        loading: false
+                    };
                 });
-
-                return node;
             } catch (err) {
-                console.error('Failed to load directory contents:', err);
-                return null;
+                update(state => ({
+                    ...state,
+                    error: err instanceof Error ? err.message : 'Failed to load directory contents',
+                    loading: false
+                }));
+                throw err; // Re-throw to allow handling in the UI
             }
         },
 

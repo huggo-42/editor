@@ -10,12 +10,16 @@
     import type { service } from '@/lib/wailsjs/go/models';
     import { fileStore } from '@/stores/fileStore';
     import { LoadDirectoryContents } from '@/lib/wailsjs/go/main/App';
+    import { createEventDispatcher } from 'svelte';
+
+    const dispatch = createEventDispatcher();
 
     type FileNode = service.FileNode;
+    type FileTreeContextMenuEvent = CustomEvent<{ event: MouseEvent, item: FileNode }>;
 
     export let item: FileNode;
     export let depth = 0;
-    export let onContextMenu: (e: MouseEvent, item: FileNode) => void;
+    export let onContextMenu: (e: FileTreeContextMenuEvent) => void;
     export let onRename: (path: string, newName: string) => void;
     export let isAllCollapsed = false;
 
@@ -26,6 +30,7 @@
     let inputElement: HTMLInputElement;
     let validationError = '';
     let originalName = '';
+    let isDragOver = false;
 
     // Validation rules
     const isValidFileName = (name: string) => {
@@ -43,6 +48,12 @@
     $: {
         if (isAllCollapsed) {
             isOpen = false;
+        }
+    }
+
+    $: {
+        if (item.isRenaming) {
+            startRename();
         }
     }
 
@@ -70,6 +81,7 @@
     }
 
     function startRename() {
+        if (isRenaming) return;
         isRenaming = true;
         editingName = item.name;
         
@@ -125,13 +137,71 @@
         isRenaming = false;
         validationError = '';
     }
+
+    function handleDragStart(event: DragEvent) {
+        if (!event.dataTransfer) return;
+        event.dataTransfer.setData('text/plain', JSON.stringify({
+            path: item.path,
+            type: item.type
+        }));
+        event.dataTransfer.effectAllowed = 'move';
+    }
+
+    function handleDragOver(event: DragEvent) {
+        if (!isDirectory) return;
+        event.preventDefault();
+        event.stopPropagation();
+        isDragOver = true;
+        if (event.dataTransfer) {
+            event.dataTransfer.dropEffect = 'move';
+        }
+    }
+
+    function handleDragLeave() {
+        isDragOver = false;
+    }
+
+    async function handleDrop(event: DragEvent) {
+        event.preventDefault();
+        event.stopPropagation();
+        isDragOver = false;
+        
+        if (!event.dataTransfer) return;
+        
+        try {
+            const dragData = JSON.parse(event.dataTransfer.getData('text/plain'));
+            if (!dragData.path || dragData.path === item.path) return;
+            
+            // Don't allow dropping into own subdirectory
+            if (item.path.startsWith(dragData.path + '/')) return;
+            
+            const newPath = `${item.path}/${dragData.path.split('/').pop()}`;
+            await fileStore.renameFile(dragData.path, newPath);
+        } catch (error) {
+            console.error('Failed to move file:', error);
+        }
+    }
 </script>
 
 <div class="relative">
     <div
-        class="flex items-center py-1 px-2 hover:bg-gray-800 cursor-pointer group rounded-sm mx-1 hover:rounded-md {isActive ? 'bg-gray-700' : ''}"
-        on:click={toggleFolder}
-        on:contextmenu|preventDefault={(e) => onContextMenu(e, item)}
+        class="flex items-center py-1 px-2 hover:bg-gray-800 cursor-pointer group rounded-sm mx-1 hover:rounded-md {isActive ? 'bg-gray-700' : ''} {isDragOver ? 'bg-gray-600' : ''}"
+        on:click|stopPropagation={toggleFolder}
+        on:contextmenu|preventDefault|stopPropagation={(e) => {
+            // Only dispatch the custom event
+            const customEvent = new CustomEvent('filetree:contextmenu', {
+                detail: { event: e, item },
+                bubbles: true,
+                composed: true,
+                cancelable: true
+            });
+            e.target.dispatchEvent(customEvent);
+        }}
+        draggable="true"
+        on:dragstart={handleDragStart}
+        on:dragover={handleDragOver}
+        on:dragleave={handleDragLeave}
+        on:drop={handleDrop}
         on:startRename={startRename}
         on:keydown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
