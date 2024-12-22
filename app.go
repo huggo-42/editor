@@ -249,3 +249,8 @@ func (a *App) SearchCommits(projectPath string, query string, limit int) ([]serv
 func (a *App) GetHeadCommit(projectPath string) (*service.CommitInfo, error) {
 	return a.git.GetHeadCommit(projectPath)
 }
+
+// GetFileDiff returns the diff for a specific file
+func (a *App) GetFileDiff(projectPath string, filePath string, staged bool) (*service.FileDiff, error) {
+	return a.git.GetFileDiff(projectPath, filePath, staged)
+}

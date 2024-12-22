@@ -9,6 +9,7 @@
     import BottomBar from "@/lib/editor/BottomBar.svelte";
     import { fileStore } from '@/stores/fileStore';
     import { projectStore } from '@/stores/project';
+    import { gitStore } from '@/stores/gitStore';
     import { registerCommand, setKeyboardContext } from '@/stores/keyboardStore';
     import { get } from 'svelte/store';
     import Editor from "@/lib/editor/Editor.svelte";
@@ -50,7 +51,7 @@
     let bottomPaneHeight = 300;
 
     // Source control state
-    let modifiedFilesCount = 2;
+    $: modifiedFilesCount = $gitStore.gitStatus.length;
 
     let tabsContainer: HTMLDivElement;
 

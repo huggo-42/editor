@@ -28,6 +28,11 @@
         await editorConfigStore.loadConfig();
         addKeyboardContext('editor');
 
+        // Setup Monaco worker
+        self.MonacoEnvironment = {
+            getWorkerUrl: () => '/node_modules/monaco-editor/esm/vs/editor/editor.worker.js'
+        };
+
         // Create editor with initial config
         const config = $editorConfigStore.editor;
 

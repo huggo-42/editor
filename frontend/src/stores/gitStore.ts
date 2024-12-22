@@ -13,7 +13,9 @@ import {
     ListCommitsAfter,
     ListCommitsByBranch,
     ListCommitsByAuthor,
-    SearchCommits
+    SearchCommits,
+    GetHeadCommit,
+    GetFileDiff
 } from '@/lib/wailsjs/go/main/App';
 import { fileStore } from '@/stores/fileStore';
 import type { service } from '@/lib/wailsjs/go/models';
@@ -24,6 +26,7 @@ interface GitState {
     changesExpanded: boolean;
     isRepository: boolean;
     isLoading: boolean;
+    isQuickRefreshing: boolean;
     loadingFiles: Set<string>;
     error: string | null;
     branches: service.BranchInfo[];
@@ -32,6 +35,13 @@ interface GitState {
     commitsLoading: boolean;
     commitsError: string | null;
     HEAD: service.CommitInfo | null;
+    initialized: boolean;
+    // Diff view state
+    selectedFile: string | null;
+    selectedFileStaged: boolean;
+    fileDiff: service.FileDiff | null;
+    isDiffLoading: boolean;
+    diffError: string | null;
 }
 
 function createGitStore() {
@@ -41,6 +51,7 @@ function createGitStore() {
         changesExpanded: true,
         isRepository: false,
         isLoading: true,
+        isQuickRefreshing: false,
         loadingFiles: new Set(),
         error: null,
         branches: [],
@@ -48,7 +59,15 @@ function createGitStore() {
         commits: [],
         commitsLoading: false,
         commitsError: null,
-        HEAD: null
+        HEAD: null,
+        initialized: false,
+        
+        // Diff view initial state
+        selectedFile: null,
+        selectedFileStaged: false,
+        fileDiff: null,
+        isDiffLoading: false,
+        diffError: null
     });
 
     return {
@@ -61,6 +80,13 @@ function createGitStore() {
                     return;
                 }
 
+                const state = get(this);
+                
+                // If already initialized and is a repository, just return
+                if (state.initialized && state.isRepository) {
+                    return;
+                }
+
                 update(state => ({ ...state, isLoading: true, error: null }));
                 const isRepo = await IsGitRepository(projectPath);
                 update(state => ({ ...state, isRepository: isRepo }));
@@ -69,21 +95,85 @@ function createGitStore() {
                 if (isRepo) {
                     await Promise.all([
                         this.refreshStatus(),
-                        this.refreshBranches()
+                        this.refreshBranches(),
+                        this.loadInitialCommits()
                     ]);
                 }
                 
-                update(state => ({ ...state, isLoading: false }));
+                update(state => ({ ...state, isLoading: false, initialized: true }));
             } catch (error) {
                 update(state => ({
                     ...state,
                     isLoading: false,
-                    error: `Failed to check repository status: ${error}`
+                    error: `Failed to check repository status: ${error}`,
+                    initialized: false
                 }));
             }
         },
 
-        async refreshStatus() {
+        async loadInitialCommits() {
+            try {
+                const projectPath = get(fileStore).currentProjectPath;
+                if (!projectPath) {
+                    return;
+                }
+
+                update(state => ({ ...state, commitsLoading: true, commitsError: null }));
+
+                // Load only first 20 commits initially
+                const commits = await ListCommits(projectPath, {
+                    limit: 20,
+                    offset: 0
+                });
+
+                update(state => ({
+                    ...state,
+                    commits,
+                    commitsLoading: false
+                }));
+            } catch (error) {
+                update(state => ({
+                    ...state,
+                    commitsLoading: false,
+                    commitsError: `Failed to load commits: ${error}`
+                }));
+            }
+        },
+
+        async quickRefresh() {
+            try {
+                const projectPath = get(fileStore).currentProjectPath;
+                if (!projectPath) {
+                    return;
+                }
+
+                update(state => ({ ...state, isQuickRefreshing: true }));
+
+                const oldHEAD = get(this).HEAD;
+
+                // Run all refreshes in parallel
+                await Promise.all([
+                    this.getHeadCommit(),
+                    this.refreshStatus(true)
+                ]);
+
+                // Check if HEAD changed
+                const currentState = get(this);
+                if (oldHEAD?.hash !== currentState.HEAD?.hash) {
+                    await this.loadInitialCommits();
+                }
+
+                update(state => ({ ...state, isQuickRefreshing: false }));
+            } catch (error) {
+                update(state => ({ 
+                    ...state, 
+                    isQuickRefreshing: false,
+                    error: `Failed to refresh: ${error}` 
+                }));
+            }
+        },
+
+        async refreshStatus(isQuickRefresh = false) {
             try {
                 const projectPath = get(fileStore).currentProjectPath;
                 if (!projectPath) {
@@ -91,7 +181,11 @@ function createGitStore() {
                 }
 
                 // Don't clear the list immediately, just set loading state
-                update(state => ({ ...state, isLoading: true, error: null }));
+                if (isQuickRefresh) {
+                    update(state => ({ ...state, isQuickRefreshing: true, error: null }));
+                } else {
+                    update(state => ({ ...state, isLoading: true, error: null }));
+                }
 
                 const status = await GetGitStatus(projectPath);
 
@@ -450,6 +544,65 @@ function createGitStore() {
             }
         },
 
+        async getHeadCommit() {
+            const projectPath = get(fileStore).currentProjectPath;
+            if (!projectPath) {
+                return;
+            }
+
+            try {
+                const head = await GetHeadCommit(projectPath);
+                update(state => ({ ...state, HEAD: head }));
+                return head;
+            } catch (error) {
+                console.error('Failed to get head commit:', error);
+            }
+        },
+
+        // Load the diff for the selected file
+        async getDiff(file: string, staged: boolean) {
+            update(state => ({
+                ...state,
+                selectedFile: file,
+                selectedFileStaged: staged,
+                isDiffLoading: true,
+                diffError: null
+            }));
+
+            try {
+                const projectPath = get(fileStore).currentProjectPath;
+                if (!projectPath) {
+                    throw new Error('No project path');
+                }
+
+                const diff = await GetFileDiff(projectPath, file, staged);
+                console.log(JSON.stringify(diff, null, 2));
+                update(state => ({
+                    ...state,
+                    fileDiff: diff,
+                    isDiffLoading: false
+                }));
+            } catch (error) {
+                update(state => ({
+                    ...state,
+                    fileDiff: null,
+                    isDiffLoading: false,
+                    diffError: `Failed to load diff: ${error}`
+                }));
+            }
+        },
+
+        clearFileSelection() {
+            update(state => ({
+                ...state,
+                selectedFile: null,
+                selectedFileStaged: false,
+                fileDiff: null,
+                isDiffLoading: false,
+                diffError: null
+            }));
+        },
+
         reset() {
             set({
                 gitStatus: [],
@@ -457,6 +610,7 @@ function createGitStore() {
                 changesExpanded: true,
                 isRepository: false,
                 isLoading: false,
+                isQuickRefreshing: false,
                 loadingFiles: new Set(),
                 error: null,
                 branches: [],
@@ -464,7 +618,13 @@ function createGitStore() {
                 commits: [],
                 commitsLoading: false,
                 commitsError: null,
-                HEAD: null
+                HEAD: null,
+                initialized: false,
+                selectedFile: null,
+                selectedFileStaged: false,
+                fileDiff: null,
+                isDiffLoading: false,
+                diffError: null
             });
         }
     };

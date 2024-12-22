@@ -52,7 +52,11 @@
     }
 </script>
 
-<div class="flex items-center text-sm py-1 group hover:bg-gray-800 rounded-sm mx-1 hover:rounded-md">
+<div 
+    class="flex items-center text-sm py-1 group hover:bg-gray-800 rounded-sm mx-1 hover:rounded-md cursor-pointer"
+    on:click={() => gitStore.getDiff(item.file, isStaged)}
+    class:bg-gray-800={$gitStore.selectedFile === item.file && $gitStore.selectedFileStaged === isStaged}
+>
     <div class="flex items-center px-2 w-full">
         {#if $gitStore.loadingFiles.has(item.file)}
             <Loader class="w-4 h-4 text-gray-500 mr-2 flex-shrink-0 animate-spin" />
