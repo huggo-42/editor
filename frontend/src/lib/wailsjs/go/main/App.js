@@ -6,6 +6,10 @@ export function AddProject(arg1, arg2) {
   return window['go']['main']['App']['AddProject'](arg1, arg2);
 }
 
+export function Commit(arg1, arg2) {
+  return window['go']['main']['App']['Commit'](arg1, arg2);
+}
+
 export function CreateDirectory(arg1) {
   return window['go']['main']['App']['CreateDirectory'](arg1);
 }
@@ -26,8 +30,16 @@ export function DestroyTerminal(arg1) {
   return window['go']['main']['App']['DestroyTerminal'](arg1);
 }
 
+export function DiscardChanges(arg1, arg2) {
+  return window['go']['main']['App']['DiscardChanges'](arg1, arg2);
+}
+
 export function GetAvailableShells() {
   return window['go']['main']['App']['GetAvailableShells']();
+}
+
+export function GetCurrentBranch(arg1) {
+  return window['go']['main']['App']['GetCurrentBranch'](arg1);
 }
 
 export function GetEditorConfig() {
@@ -36,6 +48,14 @@ export function GetEditorConfig() {
 
 export function GetFileContent(arg1) {
   return window['go']['main']['App']['GetFileContent'](arg1);
+}
+
+export function GetGitStatus(arg1) {
+  return window['go']['main']['App']['GetGitStatus'](arg1);
+}
+
+export function GetHeadCommit(arg1) {
+  return window['go']['main']['App']['GetHeadCommit'](arg1);
 }
 
 export function GetProjectFiles(arg1) {
@@ -52,6 +72,34 @@ export function Greet(arg1) {
 
 export function HandleInput(arg1, arg2) {
   return window['go']['main']['App']['HandleInput'](arg1, arg2);
+}
+
+export function InitGitRepository(arg1) {
+  return window['go']['main']['App']['InitGitRepository'](arg1);
+}
+
+export function IsGitRepository(arg1) {
+  return window['go']['main']['App']['IsGitRepository'](arg1);
+}
+
+export function ListBranches(arg1) {
+  return window['go']['main']['App']['ListBranches'](arg1);
+}
+
+export function ListCommits(arg1, arg2) {
+  return window['go']['main']['App']['ListCommits'](arg1, arg2);
+}
+
+export function ListCommitsAfter(arg1, arg2, arg3) {
+  return window['go']['main']['App']['ListCommitsAfter'](arg1, arg2, arg3);
+}
+
+export function ListCommitsByAuthor(arg1, arg2, arg3) {
+  return window['go']['main']['App']['ListCommitsByAuthor'](arg1, arg2, arg3);
+}
+
+export function ListCommitsByBranch(arg1, arg2, arg3) {
+  return window['go']['main']['App']['ListCommitsByBranch'](arg1, arg2, arg3);
 }
 
 export function LoadDirectoryContents(arg1) {
@@ -78,6 +126,18 @@ export function SaveFile(arg1, arg2) {
   return window['go']['main']['App']['SaveFile'](arg1, arg2);
 }
 
+export function SearchCommits(arg1, arg2, arg3) {
+  return window['go']['main']['App']['SearchCommits'](arg1, arg2, arg3);
+}
+
 export function SearchFiles(arg1, arg2) {
   return window['go']['main']['App']['SearchFiles'](arg1, arg2);
+}
+
+export function StageFile(arg1, arg2) {
+  return window['go']['main']['App']['StageFile'](arg1, arg2);
+}
+
+export function UnstageFile(arg1, arg2) {
+  return window['go']['main']['App']['UnstageFile'](arg1, arg2);
 }

@@ -224,7 +224,7 @@
                     item: {
                         name: $fileStore.currentProjectPath.split('/').pop() || '',
                         path: $fileStore.currentProjectPath,
-                        type: '',
+                        type: 'directory',
                         children: fileTree,
                         isLoaded: true
                     }
@@ -242,7 +242,7 @@
             x={contextMenu.x}
             y={contextMenu.y}
             on:close={handleCloseContextMenu}
-            items={contextMenu.targetItem?.type
+            items={contextMenu.targetItem?.path !== $fileStore.currentProjectPath
                 ? [
                       {
                           label: "New File",

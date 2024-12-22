@@ -8,6 +8,7 @@
     import { createEventDispatcher } from 'svelte';
     import { focusStore } from '@/stores/focusStore';
     import Breadcrumbs from "@/lib/editor/Breadcrumbs.svelte";
+    import { addKeyboardContext } from '@/stores/keyboardStore';
 
     const dispatch = createEventDispatcher();
 
@@ -25,6 +26,7 @@
     // Load editor config on mount
     onMount(async () => {
         await editorConfigStore.loadConfig();
+        addKeyboardContext('editor');
 
         // Create editor with initial config
         const config = $editorConfigStore.editor;

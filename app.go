@@ -18,6 +18,7 @@ type App struct {
 	files           *service.FileService
 	config          *service.ConfigService
 	terminalService *service.TerminalService
+	git             *service.GitService
 }
 
 // NewApp creates a new App application struct
@@ -39,6 +40,7 @@ func (a *App) startup(ctx context.Context) {
 	// Initialize services
 	a.projects = service.NewProjectsService(dbConn)
 	a.files = service.NewFileService()
+	a.git = service.NewGitService()
 
 	config, err := service.NewConfigService()
 	if err != nil {
@@ -170,5 +172,80 @@ func (a *App) HandleInput(id string, data []byte) error {
 
 // GetAvailableShells returns a list of available shells, with the default shell as the first item
 func (a *App) GetAvailableShells() ([]string, error) {
-    return a.terminalService.GetAvailableShells()
+	return a.terminalService.GetAvailableShells()
+}
+
+// IsGitRepository checks if the given directory is a Git repository
+func (a *App) IsGitRepository(projectPath string) (bool, error) {
+	return a.git.IsGitRepository(projectPath)
+}
+
+// InitGitRepository initializes a new Git repository in the given directory
+func (a *App) InitGitRepository(projectPath string) error {
+	return a.git.InitRepository(projectPath)
+}
+
+// GetGitStatus returns the current Git status of the repository
+func (a *App) GetGitStatus(projectPath string) ([]service.FileStatus, error) {
+	return a.git.GetStatus(projectPath)
+}
+
+// StageFile adds a file to the staging area
+func (a *App) StageFile(projectPath string, file string) error {
+	return a.git.StageFile(projectPath, file)
+}
+
+// UnstageFile removes a file from the staging area
+func (a *App) UnstageFile(projectPath string, file string) error {
+	return a.git.UnstageFile(projectPath, file)
+}
+
+// DiscardChanges discards changes in a file, reverting it to the last commit
+func (a *App) DiscardChanges(projectPath string, file string) error {
+	return a.git.DiscardChanges(projectPath, file)
+}
+
+// Commit creates a new commit with the staged changes
+func (a *App) Commit(projectPath string, message string) error {
+	return a.git.Commit(projectPath, message)
+}
+
+// ListBranches returns a list of all branches in the repository
+func (a *App) ListBranches(projectPath string) ([]service.BranchInfo, error) {
+	return a.git.ListBranches(projectPath)
+}
+
+// GetCurrentBranch returns the name of the current branch
+func (a *App) GetCurrentBranch(projectPath string) (string, error) {
+	return a.git.GetCurrentBranch(projectPath)
+}
+
+// ListCommits returns a list of commits based on the provided filters
+func (a *App) ListCommits(projectPath string, filter service.CommitFilter) ([]service.CommitInfo, error) {
+	return a.git.ListCommits(projectPath, filter)
+}
+
+// ListCommitsAfter returns commits after a specific commit hash
+func (a *App) ListCommitsAfter(projectPath string, offsetHash string, limit int) ([]service.CommitInfo, error) {
+	return a.git.ListCommitsAfter(projectPath, offsetHash, limit)
+}
+
+// ListCommitsByBranch returns commits from a specific branch
+func (a *App) ListCommitsByBranch(projectPath string, branch string, limit int) ([]service.CommitInfo, error) {
+	return a.git.ListCommitsByBranch(projectPath, branch, limit)
+}
+
+// ListCommitsByAuthor returns commits by a specific author
+func (a *App) ListCommitsByAuthor(projectPath string, author string, limit int) ([]service.CommitInfo, error) {
+	return a.git.ListCommitsByAuthor(projectPath, author, limit)
+}
+
+// SearchCommits searches for commits by message
+func (a *App) SearchCommits(projectPath string, query string, limit int) ([]service.CommitInfo, error) {
+	return a.git.SearchCommits(projectPath, query, limit)
+}
+
+// GetHeadCommit returns the head commit of the repository
+func (a *App) GetHeadCommit(projectPath string) (*service.CommitInfo, error) {
+	return a.git.GetHeadCommit(projectPath)
 }

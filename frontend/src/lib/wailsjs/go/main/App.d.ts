@@ -5,6 +5,8 @@ import {service} from '../models';
 
 export function AddProject(arg1:string,arg2:string):Promise<db.Project>;
 
+export function Commit(arg1:string,arg2:string):Promise<void>;
+
 export function CreateDirectory(arg1:string):Promise<void>;
 
 export function CreateFile(arg1:string):Promise<void>;
@@ -15,11 +17,19 @@ export function DeleteFile(arg1:string):Promise<void>;
 
 export function DestroyTerminal(arg1:string):Promise<void>;
 
+export function DiscardChanges(arg1:string,arg2:string):Promise<void>;
+
 export function GetAvailableShells():Promise<Array<string>>;
+
+export function GetCurrentBranch(arg1:string):Promise<string>;
 
 export function GetEditorConfig():Promise<service.EditorConfig>;
 
 export function GetFileContent(arg1:string):Promise<string>;
+
+export function GetGitStatus(arg1:string):Promise<Array<service.FileStatus>>;
+
+export function GetHeadCommit(arg1:string):Promise<service.CommitInfo>;
 
 export function GetProjectFiles(arg1:string):Promise<service.FileNode>;
 
@@ -28,6 +38,20 @@ export function GetRecentProjects():Promise<Array<db.Project>>;
 export function Greet(arg1:string):Promise<string>;
 
 export function HandleInput(arg1:string,arg2:Array<number>):Promise<void>;
+
+export function InitGitRepository(arg1:string):Promise<void>;
+
+export function IsGitRepository(arg1:string):Promise<boolean>;
+
+export function ListBranches(arg1:string):Promise<Array<service.BranchInfo>>;
+
+export function ListCommits(arg1:string,arg2:service.CommitFilter):Promise<Array<service.CommitInfo>>;
+
+export function ListCommitsAfter(arg1:string,arg2:string,arg3:number):Promise<Array<service.CommitInfo>>;
+
+export function ListCommitsByAuthor(arg1:string,arg2:string,arg3:number):Promise<Array<service.CommitInfo>>;
+
+export function ListCommitsByBranch(arg1:string,arg2:string,arg3:number):Promise<Array<service.CommitInfo>>;
 
 export function LoadDirectoryContents(arg1:string):Promise<service.FileNode>;
 
@@ -41,4 +65,10 @@ export function ResizeTerminal(arg1:string,arg2:number,arg3:number):Promise<void
 
 export function SaveFile(arg1:string,arg2:string):Promise<void>;
 
+export function SearchCommits(arg1:string,arg2:string,arg3:number):Promise<Array<service.CommitInfo>>;
+
 export function SearchFiles(arg1:string,arg2:string):Promise<Array<service.FileNode>>;
+
+export function StageFile(arg1:string,arg2:string):Promise<void>;
+
+export function UnstageFile(arg1:string,arg2:string):Promise<void>;

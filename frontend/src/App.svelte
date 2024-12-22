@@ -5,7 +5,8 @@
   import Welcome from "@/routes/Welcome.svelte";
   import Editor from "@/routes/Editor.svelte";
   import Configs from "@/routes/Configs.svelte";
-  import CommandPalette from "@/lib/components/CommandPalette.svelte";
+  import CommandPalette from "@/lib/components/palletes/CommandPalette.svelte";
+  import BranchPalette from "@/lib/components/palletes/BranchPalette.svelte";
   import KeyboardManager from "@/lib/components/KeyboardManager.svelte";
   import { registerCommand } from "./stores/keyboardStore";
 
@@ -16,9 +17,11 @@
   };
 
   let showCommandPalette = false;
+  let showBranchPalette = false;
 
   onMount(() => {
     registerCommand("command.showCommandPalette", () => showCommandPalette = true);
+    registerCommand("git.showBranchPalette", () => showBranchPalette = true);
   });
 
   onDestroy(() => {
@@ -34,5 +37,10 @@
   <CommandPalette
     show={showCommandPalette}
     on:close={() => (showCommandPalette = false)}
+  />
+
+  <BranchPalette
+    show={showBranchPalette}
+    on:close={() => (showBranchPalette = false)}
   />
 </main>

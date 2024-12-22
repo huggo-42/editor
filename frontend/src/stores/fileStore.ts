@@ -245,7 +245,34 @@ function createFileStore() {
         // Create new file
         async createFile(path: string): Promise<void> {
             try {
+                // Get parent directory path
+                const parentPath = path.substring(0, path.lastIndexOf("/"));
+                
                 await CreateFile(path);
+                
+                // Update only the parent directory
+                const updatedNode = await LoadDirectoryContents(parentPath);
+                if (updatedNode) {
+                    update(state => {
+                        if (!state.fileTree) return state;
+                        
+                        const newTree = [...state.fileTree];
+                        const updateDir = (nodes: FileNode[]): boolean => {
+                            for (const node of nodes) {
+                                if (node.path === parentPath) {
+                                    node.children = updatedNode.children;
+                                    return true;
+                                }
+                                if (node.children && updateDir(node.children)) {
+                                    return true;
+                                }
+                            }
+                            return false;
+                        };
+                        updateDir(newTree);
+                        return { ...state, fileTree: newTree };
+                    });
+                }
             } catch (error) {
                 update(state => ({ ...state, error: `Failed to create file: ${error}` }));
                 throw error;
@@ -255,7 +282,33 @@ function createFileStore() {
         // Create new directory
         async createDirectory(path: string): Promise<void> {
             try {
+                const parentPath = path.substring(0, path.lastIndexOf("/"));
+                
                 await CreateDirectory(path);
+                
+                // Update only the parent directory
+                const updatedNode = await LoadDirectoryContents(parentPath);
+                if (updatedNode) {
+                    update(state => {
+                        if (!state.fileTree) return state;
+                        
+                        const newTree = [...state.fileTree];
+                        const updateDir = (nodes: FileNode[]): boolean => {
+                            for (const node of nodes) {
+                                if (node.path === parentPath) {
+                                    node.children = updatedNode.children;
+                                    return true;
+                                }
+                                if (node.children && updateDir(node.children)) {
+                                    return true;
+                                }
+                            }
+                            return false;
+                        };
+                        updateDir(newTree);
+                        return { ...state, fileTree: newTree };
+                    });
+                }
             } catch (error) {
                 update(state => ({ ...state, error: `Failed to create directory: ${error}` }));
                 throw error;
@@ -265,19 +318,42 @@ function createFileStore() {
         // Rename/Move file or directory
         async renameFile(oldPath: string, newPath: string): Promise<void> {
             try {
-                await RenameFile(oldPath, newPath);
-                // Get both parent directories
                 const oldParentPath = oldPath.substring(0, oldPath.lastIndexOf("/"));
                 const newParentPath = newPath.substring(0, newPath.lastIndexOf("/"));
                 
-                // Refresh both parent directories
-                await this.loadDirectoryContents(oldParentPath);
-                if (oldParentPath !== newParentPath) {
-                    await this.loadDirectoryContents(newParentPath);
-                }
+                await RenameFile(oldPath, newPath);
                 
-                // Then refresh the entire tree to ensure consistency
-                await this.refreshFiles();
+                // Update both old and new parent directories
+                const [oldUpdatedNode, newUpdatedNode] = await Promise.all([
+                    LoadDirectoryContents(oldParentPath),
+                    oldParentPath !== newParentPath ? LoadDirectoryContents(newParentPath) : null
+                ]);
+
+                update(state => {
+                    if (!state.fileTree) return state;
+                    
+                    const newTree = [...state.fileTree];
+                    const updateDir = (nodes: FileNode[], path: string, updatedChildren: FileNode[]): boolean => {
+                        for (const node of nodes) {
+                            if (node.path === path) {
+                                node.children = updatedChildren;
+                                return true;
+                            }
+                            if (node.children && updateDir(node.children, path, updatedChildren)) {
+                                return true;
+                            }
+                        }
+                        return false;
+                    };
+
+                    if (oldUpdatedNode) {
+                        updateDir(newTree, oldParentPath, oldUpdatedNode.children);
+                    }
+                    if (newUpdatedNode) {
+                        updateDir(newTree, newParentPath, newUpdatedNode.children);
+                    }
+                    return { ...state, fileTree: newTree };
+                });
             } catch (error) {
                 update(state => ({ ...state, error: `Failed to rename/move: ${error}` }));
                 throw error;
@@ -287,18 +363,90 @@ function createFileStore() {
         // Delete file or directory
         async deleteFile(path: string): Promise<void> {
             try {
+                const state = get({ subscribe });
+                const currentProjectPath = state.currentProjectPath;
+                if (!currentProjectPath) return;
+
+                // Get parent path, use project root if file is in root directory
+                const lastSlashIndex = path.lastIndexOf("/");
+                const parentPath = lastSlashIndex > 0 
+                    ? path.substring(0, lastSlashIndex)
+                    : currentProjectPath;
+                
+                // Optimistically remove from the tree first
+                update(state => {
+                    if (!state.fileTree) return state;
+                    
+                    const newTree = [...state.fileTree];
+                    const removeNode = (nodes: FileNode[]): boolean => {
+                        for (let i = 0; i < nodes.length; i++) {
+                            if (nodes[i].path === path) {
+                                nodes.splice(i, 1);
+                                return true;
+                            }
+                            if (nodes[i].children && removeNode(nodes[i].children)) {
+                                return true;
+                            }
+                        }
+                        return false;
+                    };
+                    removeNode(newTree);
+                    return { ...state, fileTree: newTree };
+                });
+
                 await DeleteFile(path);
-                // After deletion, get the parent directory path
-                const parentPath = path.substring(0, path.lastIndexOf("/"));
                 
-                // First refresh the parent directory
-                await this.loadDirectoryContents(parentPath);
-                
-                // Then refresh the entire tree to ensure consistency
-                await this.loadProjectFiles();
+                // Then update the parent directory to ensure proper sorting
+                const updatedNode = await LoadDirectoryContents(parentPath);
+                if (updatedNode) {
+                    update(state => {
+                        if (!state.fileTree) return state;
+                        
+                        // If it's the root directory, update the entire tree
+                        if (parentPath === currentProjectPath) {
+                            return { ...state, fileTree: updatedNode.children || [] };
+                        }
+                        
+                        // Otherwise update the specific directory
+                        const newTree = [...state.fileTree];
+                        const updateDir = (nodes: FileNode[]): boolean => {
+                            for (const node of nodes) {
+                                if (node.path === parentPath) {
+                                    node.children = updatedNode.children;
+                                    return true;
+                                }
+                                if (node.children && updateDir(node.children)) {
+                                    return true;
+                                }
+                            }
+                            return false;
+                        };
+                        updateDir(newTree);
+                        return { ...state, fileTree: newTree };
+                    });
+                }
+
+                // Also remove from open files if it was open
+                update(state => {
+                    const newOpenFiles = new Map(state.openFiles);
+                    newOpenFiles.delete(path);
+                    
+                    // If the deleted file was active, set a new active file
+                    let newActiveFilePath = state.activeFilePath;
+                    if (state.activeFilePath === path) {
+                        const openFilePaths = Array.from(newOpenFiles.keys());
+                        newActiveFilePath = openFilePaths.length > 0 ? openFilePaths[0] : null;
+                    }
+                    
+                    return {
+                        ...state,
+                        openFiles: newOpenFiles,
+                        activeFilePath: newActiveFilePath
+                    };
+                });
             } catch (error) {
                 update(state => ({ ...state, error: `Failed to delete: ${error}` }));
-                throw error; // Re-throw to allow handling in the UI
+                throw error;
             }
         },
 

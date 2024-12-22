@@ -12,11 +12,12 @@
     import { registerCommand, setKeyboardContext } from '@/stores/keyboardStore';
     import { get } from 'svelte/store';
     import Editor from "@/lib/editor/Editor.svelte";
-    import FileFinder from "@/lib/components/FileFinder.svelte";
+    import FileFinderPallete from "@/lib/components/palletes/FileFinderPallete.svelte";
+    import GitCommitPallete from "@/lib/components/palletes/GitCommitPallete.svelte";
     import Modal from "@/lib/components/Modal.svelte";
     import BottomPane from "@/lib/editor/panes/BottomPane.svelte";
-    import { bottomPaneStore } from '@/stores/bottomPaneStore';
     import { focusStore } from '@/stores/focusStore';
+    import { bottomPaneStore } from '@/stores/bottomPaneStore';
 
     // Convert open files to tabs
     $: tabs = Array.from($fileStore.openFiles.entries()).map(([path, file]) => ({
@@ -38,6 +39,7 @@
     let isExplorerActive = true;
     let showCommandPalette = false;
     let showFileFinder = false;
+    let showCommitSearch = false;
 
     // Bottom pane state
     let bottomPaneState = $bottomPaneStore;
@@ -128,6 +130,29 @@
         }
     }
 
+    function toggleSourceControl() {
+        isSourceControlActive = !isSourceControlActive;
+        if (isSourceControlActive) {
+            leftSidebarState.activeSection = 'git';
+            leftSidebarState.collapsed = false;
+            isExplorerActive = false;
+        } else {
+            leftSidebarState.activeSection = 'files';
+        }
+    }
+
+    function toggleExplorer() {
+        isExplorerActive = !isExplorerActive;
+        if (isExplorerActive) {
+            leftSidebarState.activeSection = 'files';
+            leftSidebarState.collapsed = false;
+            isSourceControlActive = false;
+        } else {
+            // When deactivating explorer, we don't switch to another view
+            leftSidebarState.collapsed = true;
+        }
+    }
+
     onMount(() => {
         const state = get(projectStore);
         if (state.currentProject?.Path) {
@@ -155,7 +180,8 @@
         });
 
         registerCommand('file.showFileFinder', () => showFileFinder = true);
-        
+        registerCommand('git.showCommitPalette', () => showCommitSearch = true);
+
         // Register sidebar toggle commands
         registerCommand('view.toggleLeftSidebar', () => {
             leftSidebarState.collapsed = !leftSidebarState.collapsed;
@@ -175,13 +201,13 @@
     <Topbar 
         bind:isLeftSidebarCollapsed={leftSidebarState.collapsed}
         bind:isRightSidebarCollapsed={rightSidebarCollapsed}
+        onToggleSourceControl={toggleSourceControl}
         bind:isSourceControlActive
         bind:isExplorerActive
         {modifiedFilesCount}
         onToggleLeftSidebar={() => leftSidebarState.collapsed = !leftSidebarState.collapsed}
         onToggleRightSidebar={() => rightSidebarCollapsed = !rightSidebarCollapsed}
-        onToggleSourceControl={() => isSourceControlActive = !isSourceControlActive}
-        onToggleExplorer={() => isExplorerActive = !isExplorerActive}
+        onToggleExplorer={toggleExplorer}
         showCommandPalette={() => showCommandPalette = true}
         showFileFinder={() => showFileFinder = true}
     />
@@ -283,11 +309,14 @@
     
     <BottomBar />
 
-    <FileFinder 
+    <FileFinderPallete 
         bind:show={showFileFinder} 
         on:close={() => showFileFinder = false} 
         on:select={({ detail }) => scrollToTab(detail.path)}
     />
+
+
+    <GitCommitPallete bind:show={showCommitSearch} />
     
     <Modal
         bind:show={showCloseConfirmModal}

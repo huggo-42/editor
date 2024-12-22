@@ -156,6 +156,26 @@ const defaultKeybindings: KeyBindingConfig = {
         },
         action: () => {}
     },
+    'git.showBranchPalette': {
+        defaultBinding: {
+            key: 'b',
+            modifiers: ['ctrl', 'shift'],
+            description: 'Show Branch Palette',
+            category: 'Git',
+            context: ['editor']
+        },
+        action: () => {}
+    },
+    'git.showCommitPalette': {
+        defaultBinding: {
+            key: 'f',
+            modifiers: ['ctrl', 'shift'],
+            description: 'Search Git Commits',
+            category: 'Git',
+            context: ['editor']
+        },
+        action: () => {}
+    },
 
     // File Manager shortcuts
     'file.createFile': {
