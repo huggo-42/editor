@@ -27,6 +27,28 @@ jobs:
       - uses: actions/checkout@v3
         with:
           submodules: recursive
+
+      # Cache Go dependencies
+      - name: Set up Go cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      # Cache npm dependencies
+      - name: Set up npm cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            frontend/node_modules
+          key: ${{ runner.os }}-npm-${{ hashFiles('frontend/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
+
       - uses: ./.github/actions/wails
         with:
           build-name: editai
@@ -54,6 +76,28 @@ jobs:
       - uses: actions/checkout@v3
         with:
           submodules: recursive
+
+      # Cache Go dependencies
+      - name: Set up Go cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/Library/Caches/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      # Cache npm dependencies
+      - name: Set up npm cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            frontend/node_modules
+          key: ${{ runner.os }}-npm-${{ hashFiles('frontend/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
+
       - uses: ./.github/actions/wails
         with:
           build-name: editai
@@ -85,6 +129,28 @@ jobs:
       - uses: actions/checkout@v3
         with:
           submodules: recursive
+
+      # Cache Go dependencies
+      - name: Set up Go cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~\AppData\Local\go-build
+            ~\go\pkg\mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      # Cache npm dependencies
+      - name: Set up npm cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            frontend\node_modules
+          key: ${{ runner.os }}-npm-${{ hashFiles('frontend/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
+
       - uses: ./.github/actions/wails
         with:
           build-name: editai

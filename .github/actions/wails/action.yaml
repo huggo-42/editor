@@ -158,7 +158,7 @@ runs:
     - name: Build Windows App
       if: inputs.build == 'true' && runner.os == 'Windows' && inputs.nsis == 'false'
       working-directory: ${{ inputs.app-working-directory }}
-      run: wails build --platform ${{inputs.build-platform}} -webview2 ${{inputs.wails-build-webview2}} -o ${{inputs.build-name}} -tags '${{inputs.build-tags}}'
+      run: wails build --platform ${{inputs.build-platform}} -webview2 ${{inputs.wails-build-webview2}} -o ${{inputs.build-name}}.exe -tags '${{inputs.build-tags}}'
       shell: bash
     - name: Build Windows App + Installer
       if: inputs.build == 'true' && runner.os == 'Windows' && inputs.nsis == 'true'
