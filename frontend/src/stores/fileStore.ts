@@ -1,15 +1,18 @@
 import { writable, get } from 'svelte/store';
 import type { service } from '@/lib/wailsjs/go/models';
 import { GetProjectFiles, GetFileContent, SaveFile, CreateFile, CreateDirectory, RenameFile, DeleteFile, LoadDirectoryContents } from '@/lib/wailsjs/go/main/App';
+import { getLanguageFromPath } from '@/lib/utils/languageMap';
 
 type FileNode = service.FileNode;
+type DiffStats = service.DiffStats;
 
 interface OpenFile {
     path: string;
     content: string;
     isDirty: boolean;
     language: string;
-    cursor: { line: number; column: number };
+    type: 'file' | 'diff';
+    stats?: DiffStats;
 }
 
 interface FileState {
@@ -136,8 +139,8 @@ function createFileStore() {
                         path,
                         content,
                         isDirty: false,
-                        language: path.split('.').pop() || 'text',
-                        cursor: { line: 0, column: 0 }
+                        language: getLanguageFromPath(path),
+                        type: 'file'
                     };
                     newOpenFiles.set(path, openFile);
                     return {
@@ -152,6 +155,31 @@ function createFileStore() {
                     error: err instanceof Error ? err.message : 'Failed to open file'
                 }));
             }
+        },
+
+        // Open a virtual file (for diffs, etc.)
+        openVirtualFile: (path: string, content: string, language: string, type: 'file' | 'diff', stats?: DiffStats) => {
+            update(state => {
+                // Create virtual file
+                const virtualFile: OpenFile = {
+                    path,
+                    content,
+                    isDirty: false,
+                    language,
+                    type,
+                    stats
+                };
+                
+                // Add to open files
+                const openFiles = new Map(state.openFiles);
+                openFiles.set(path, virtualFile);
+                
+                return {
+                    ...state,
+                    openFiles,
+                    activeFilePath: path
+                };
+            });
         },
 
         // Close a file
@@ -202,12 +230,16 @@ function createFileStore() {
         // Update file content
         updateFileContent(path: string, content: string, isDirty = true) {
             update(state => {
-                const file = state.openFiles.get(path);
-                if (!file) return state;
-
-                const newOpenFiles = new Map(state.openFiles);
-                newOpenFiles.set(path, { ...file, content, isDirty });
-                return { ...state, openFiles: newOpenFiles };
+                const openFiles = new Map(state.openFiles);
+                const file = openFiles.get(path);
+                if (file) {
+                    openFiles.set(path, {
+                        ...file,
+                        content,
+                        isDirty
+                    });
+                }
+                return { ...state, openFiles };
             });
         },
 

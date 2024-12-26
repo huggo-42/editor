@@ -9,6 +9,8 @@
     } from "lucide-svelte";
     import { BrowserOpenURL } from "@/lib/wailsjs/runtime/runtime";
     import RecentProjects from "@/lib/components/RecentProjects.svelte";
+    import { onMount } from "svelte";
+    import Snow from "@/lib/components/Snow.svelte";
 
     const documentationLinks = [
         {
@@ -35,7 +37,16 @@
         BrowserOpenURL(url);
     }
 
+    // Check if it's Christmas
+    const today = new Date();
+    const isChristmas = today.getMonth() === 11 && today.getDate() === 25;
+
+    const christmasEmojis = "🎄 ❄️ ⛄";
 </script>
+
+{#if isChristmas}
+    <Snow />
+{/if}
 
 <div class="min-h-screen bg-gray-900 text-gray-200 p-8">
     <div class="max-w-7xl mx-auto">
@@ -44,7 +55,7 @@
             <h1
                 class="text-5xl font-bold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent"
             >
-                Welcome to Edit4I
+                Welcome to Edit4I {isChristmas ? christmasEmojis : ""}
             </h1>
             <p class="text-gray-400 mt-4 text-lg">
                 Your intelligent coding companion

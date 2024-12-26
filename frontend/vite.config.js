@@ -13,8 +13,13 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {}
+        manualChunks: {
+          'monaco': ['monaco-editor']
+        }
       }
+    },
+    worker: {
+      format: 'es'
     }
   },
   optimizeDeps: {
@@ -24,5 +29,7 @@ export default defineConfig({
     fs: {
       strict: false
     }
-  }
+  },
+  publicDir: 'public',
+  base: './'
 })

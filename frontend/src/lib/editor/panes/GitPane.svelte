@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { GitBranch, RefreshCw, Loader } from "lucide-svelte";
+    import { GitBranch, RefreshCw, Loader, FolderTree } from "lucide-svelte";
     import Button from "@/lib/components/Button.svelte";
     import { gitStore } from "@/stores/gitStore";
     import { onMount } from "svelte";
@@ -7,7 +7,6 @@
     import GitStagedChanges from "@/lib/editor/git/GitStagedChanges.svelte";
     import GitUnstagedChanges from "@/lib/editor/git/GitUnstagedChanges.svelte";
     import GitCommitSection from "@/lib/editor/git/GitCommitSection.svelte";
-    import GitChangesView from "@/lib/editor/git/changes/GitChangesView.svelte";
 
     onMount(async () => {
         await gitStore.checkRepository();
@@ -26,6 +25,13 @@
         </div>
         <div class="flex items-center space-x-1">
             <Button
+                variant={$gitStore.hierarchicalView ? "secondary" : "ghost"}
+                size="sm"
+                icon={FolderTree}
+                title="Toggle Hierarchical View"
+                on:click={() => gitStore.toggleHierarchicalView()}
+            />
+            <Button
                 variant="ghost"
                 size="sm"
                 icon={RefreshCw}
@@ -40,15 +46,11 @@
         <GitRepositoryStatus />
         
         {#if $gitStore.isRepository && !$gitStore.isLoading && !$gitStore.error}
-            {#if $gitStore.selectedFile}
-                <GitChangesView />
-            {:else}
-                <div class="p-1 pt-2 flex-1">
-                    <GitStagedChanges />
-                    <GitUnstagedChanges />
-                </div>
-                <GitCommitSection />
-            {/if}
+            <div class="p-1 pt-2 flex-1">
+                <GitStagedChanges />
+                <GitUnstagedChanges />
+            </div>
+            <GitCommitSection />
         {/if}
     </div>
 </div>

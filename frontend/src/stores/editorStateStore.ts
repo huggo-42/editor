@@ -1,4 +1,4 @@
-import { writable, get } from 'svelte/store';
+import { writable } from 'svelte/store';
 import type * as monaco from 'monaco-editor';
 
 export type EditorState = {
@@ -14,7 +14,7 @@ type EditorStates = {
 };
 
 function createEditorStateStore() {
-    const { subscribe, set, update } = writable<EditorStates>({});
+    const { subscribe, update } = writable<EditorStates>({});
 
     return {
         subscribe,
@@ -48,30 +48,30 @@ function createEditorStateStore() {
         // Restore the editor state for a file
         restoreState: (filePath: string, editor: monaco.editor.IStandaloneCodeEditor) => {
             try {
-                const states = get(editorStateStore);
-                const state = states[filePath];
+                update(states => {
+                    const state = states[filePath];
+                    if (!state) return states;
 
-                if (!state) {
-                    return;
-                }
+                    // First restore the view state
+                    if (state.viewState) {
+                        editor.restoreViewState(state.viewState);
+                    }
 
-                // First restore the view state
-                if (state.viewState) {
-                    editor.restoreViewState(state.viewState);
-                }
+                    // Then set position and selection
+                    if (state.selection) {
+                        editor.setSelection(state.selection);
+                    }
+                    editor.setPosition(state.cursorPosition);
 
-                // Then set position and selection
-                if (state.selection) {
-                    editor.setSelection(state.selection);
-                }
-                editor.setPosition(state.cursorPosition);
+                    // Finally set scroll position
+                    editor.setScrollTop(state.scrollTop);
+                    editor.setScrollLeft(state.scrollLeft);
 
-                // Finally set scroll position
-                editor.setScrollTop(state.scrollTop);
-                editor.setScrollLeft(state.scrollLeft);
+                    // Force the editor to focus
+                    editor.focus();
 
-                // Force the editor to focus
-                editor.focus();
+                    return states;
+                });
             } catch (error) {
                 console.error('Error restoring editor state:', error);
             }
@@ -84,12 +84,6 @@ function createEditorStateStore() {
                 delete newStates[filePath];
                 return newStates;
             });
-        },
-
-        // Debug: get current states
-        debug: () => {
-            const states = get(editorStateStore);
-            return states;
         }
     };
 }

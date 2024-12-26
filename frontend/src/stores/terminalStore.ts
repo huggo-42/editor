@@ -14,7 +14,7 @@ export interface TerminalTab {
 export const availableShells = writable<string[]>(['/bin/bash']);
 
 // Initialize with visibility control
-export const terminalVisibility = writable<boolean>(false);
+export const terminalVisibility = writable<boolean>(true);
 
 // Load available shells on startup
 GetAvailableShells().then(shells => {

@@ -8,6 +8,7 @@
     import { createEventDispatcher } from 'svelte';
     import { focusStore } from '@/stores/focusStore';
     import Breadcrumbs from "@/lib/editor/Breadcrumbs.svelte";
+    import DiffHeader from "@/lib/editor/git/changes/DiffHeader.svelte";
     import { addKeyboardContext } from '@/stores/keyboardStore';
 
     const dispatch = createEventDispatcher();
@@ -32,6 +33,42 @@
         self.MonacoEnvironment = {
             getWorkerUrl: () => '/node_modules/monaco-editor/esm/vs/editor/editor.worker.js'
         };
+
+        // Register diff language for syntax highlighting
+        if (!monaco.languages.getLanguages().some(lang => lang.id === 'diff')) {
+            monaco.languages.register({ id: 'diff' });
+            monaco.languages.setMonarchTokensProvider('diff', {
+                tokenizer: {
+                    root: [
+                        [/^\+.*$/, 'diff.inserted'],
+                        [/^-.*$/, 'diff.deleted'],
+                        [/^@@.*@@/, 'diff.range'],
+                        [/^diff.*$/, 'diff.header'],
+                        [/^index.*$/, 'diff.header'],
+                        [/^\+\+\+.*$/, 'diff.header'],
+                        [/^---.*$/, 'diff.header']
+                    ]
+                }
+            });
+            
+            // Add diff theme colors
+            monaco.editor.defineTheme('vs-dark', {
+                base: 'vs-dark',
+                inherit: true,
+                rules: [
+                    { token: 'diff.header', foreground: '808080' },
+                    { token: 'diff.inserted', foreground: '4EC9B0' },
+                    { token: 'diff.deleted', foreground: 'F48771' },
+                    { token: 'diff.range', foreground: '808080' }
+                ],
+                colors: {
+                    'diffEditor.insertedTextBackground': '#37415180',
+                    'diffEditor.removedTextBackground': '#51202A80',
+                    'diffEditor.insertedLineBackground': '#37415140',
+                    'diffEditor.removedLineBackground': '#51202A40'
+                }
+            });
+        }
 
         // Create editor with initial config
         const config = $editorConfigStore.editor;
@@ -102,13 +139,39 @@
             editorStateStore.saveState(previousPath, editor);
         }
 
-        // Restore state of current file after a short delay to ensure model is ready
-        setTimeout(() => {
-            if (editor && editorInitialized) {
-                editorStateStore.restoreState(newPath, editor);
-                previousPath = newPath;
-            }
-        }, 100);
+        // Get file content and language
+        const file = $fileStore.openFiles.get(newPath);
+        if (!file) return;
+
+        // Create new model or get existing one
+        let model = monaco.editor.getModel(monaco.Uri.parse(newPath));
+        if (!model) {
+            model = monaco.editor.createModel(
+                file.content,
+                file.language,
+                monaco.Uri.parse(newPath)
+            );
+        }
+
+        // Make diff files read-only
+        if (file.language === 'diff') {
+            editor.updateOptions({
+                readOnly: true,
+                minimap: { enabled: false }
+            });
+        } else {
+            editor.updateOptions({
+                readOnly: false,
+                minimap: { enabled: $editorConfigStore.editor.minimap }
+            });
+        }
+
+        editor.setModel(model);
+        
+        // Restore editor state if exists
+        editorStateStore.restoreState(newPath, editor);
+
+        previousPath = newPath;
     }
 
     // Watch for focus changes
@@ -176,6 +239,8 @@
                 return 'markdown';
             case 'css':
                 return 'css';
+            case 'diff':
+                return 'diff';
             default:
                 return 'plaintext';
         }
@@ -257,7 +322,11 @@
 
 <div class="h-full relative flex flex-col">
     {#if $fileStore.activeFilePath}
-        <Breadcrumbs filepath={$fileStore.activeFilePath} />
+        {#if $fileStore.activeFilePath.startsWith('[diff]')}
+            <DiffHeader filepath={$fileStore.activeFilePath} />
+        {:else}
+            <Breadcrumbs filepath={$fileStore.activeFilePath} />
+        {/if}
     {/if}
     
     <div class="flex-1 relative">

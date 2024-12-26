@@ -2,9 +2,9 @@
     import { ChevronDown, ChevronRight, Loader, Eye, Edit, GitBranch, RotateCcw, GitFork, ArrowDownToLine, ArrowDown } from "lucide-svelte";
     import { gitStore } from "@/stores/gitStore";
     import { onMount } from "svelte";
-    import ResizeHandle from "../ResizeHandle.svelte";
-    import GitCommitItem from "./GitCommitItem.svelte";
-    import ContextMenu from "@/lib/editor/ContextMenu.svelte";
+    import ResizeHandle from "@/lib/components/ResizeHandle.svelte";
+    import GitCommitItem from "@/lib/editor/git/GitCommitItem.svelte";
+    import ContextMenu from "@/lib/components/ContextMenu.svelte";
     import type { service } from "@/lib/wailsjs/go/models";
 
     export let expanded = false;

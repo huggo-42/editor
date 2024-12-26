@@ -2,8 +2,11 @@
     import { ChevronDown, ChevronRight } from "lucide-svelte";
     import { gitStore } from "@/stores/gitStore";
     import GitStatusItem from "./GitStatusItem.svelte";
+    import { sortGitFiles } from "@/lib/utils/gitSort";
 
-    $: stagedChanges = $gitStore.gitStatus?.filter((item) => item.staged) || [];
+    $: stagedChanges = $gitStore.gitStatus?.filter((item) => item.staged)
+        ? sortGitFiles($gitStore.gitStatus.filter((item) => item.staged), $gitStore.hierarchicalView)
+        : [];
 </script>
 
 {#if stagedChanges.length > 0}

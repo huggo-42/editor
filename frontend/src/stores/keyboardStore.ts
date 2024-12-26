@@ -339,7 +339,7 @@ const defaultKeybindings: KeyBindingConfig = {
         }
     },
     // Direct tab selection (max 9)
-    ...Array.from({ length: Math.min(9, get(fileStore).openFiles.size) }, (_, i) => ({
+    ...Array.from({ length: 9 }, (_, i) => ({
         [`goToTab${i + 1}`]: {
             defaultBinding: {
                 key: String(i + 1),

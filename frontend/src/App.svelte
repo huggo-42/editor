@@ -9,6 +9,7 @@
   import BranchPalette from "@/lib/components/palletes/BranchPalette.svelte";
   import KeyboardManager from "@/lib/components/KeyboardManager.svelte";
   import { registerCommand } from "./stores/keyboardStore";
+  import { editorConfigStore } from "./stores/editorConfigStore";
 
   const routes = {
     "/": Welcome,
@@ -19,7 +20,11 @@
   let showCommandPalette = false;
   let showBranchPalette = false;
 
-  onMount(() => {
+  onMount(async () => {
+    // Load editor config first
+    await editorConfigStore.loadConfig();
+
+    // Register commands after config is loaded
     registerCommand("command.showCommandPalette", () => showCommandPalette = true);
     registerCommand("git.showBranchPalette", () => showBranchPalette = true);
   });

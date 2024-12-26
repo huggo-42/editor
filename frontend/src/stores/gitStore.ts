@@ -24,6 +24,7 @@ interface GitState {
     gitStatus: service.FileStatus[];
     stagedExpanded: boolean;
     changesExpanded: boolean;
+    hierarchicalView: boolean;
     isRepository: boolean;
     isLoading: boolean;
     isQuickRefreshing: boolean;
@@ -36,12 +37,6 @@ interface GitState {
     commitsError: string | null;
     HEAD: service.CommitInfo | null;
     initialized: boolean;
-    // Diff view state
-    selectedFile: string | null;
-    selectedFileStaged: boolean;
-    fileDiff: service.FileDiff | null;
-    isDiffLoading: boolean;
-    diffError: string | null;
 }
 
 function createGitStore() {
@@ -49,6 +44,7 @@ function createGitStore() {
         gitStatus: [],
         stagedExpanded: true,
         changesExpanded: true,
+        hierarchicalView: false,
         isRepository: false,
         isLoading: true,
         isQuickRefreshing: false,
@@ -60,14 +56,7 @@ function createGitStore() {
         commitsLoading: false,
         commitsError: null,
         HEAD: null,
-        initialized: false,
-        
-        // Diff view initial state
-        selectedFile: null,
-        selectedFileStaged: false,
-        fileDiff: null,
-        isDiffLoading: false,
-        diffError: null
+        initialized: false
     });
 
     return {
@@ -268,6 +257,11 @@ function createGitStore() {
         toggleChangesExpanded: () => update(state => ({
             ...state,
             changesExpanded: !state.changesExpanded
+        })),
+
+        toggleHierarchicalView: () => update(state => ({
+            ...state,
+            hierarchicalView: !state.hierarchicalView
         })),
 
         setGitStatus: (status: service.FileStatus[]) => update(state => ({
@@ -559,16 +553,7 @@ function createGitStore() {
             }
         },
 
-        // Load the diff for the selected file
         async getDiff(file: string, staged: boolean) {
-            update(state => ({
-                ...state,
-                selectedFile: file,
-                selectedFileStaged: staged,
-                isDiffLoading: true,
-                diffError: null
-            }));
-
             try {
                 const projectPath = get(fileStore).currentProjectPath;
                 if (!projectPath) {
@@ -576,19 +561,15 @@ function createGitStore() {
                 }
 
                 const diff = await GetFileDiff(projectPath, file, staged);
-                console.log(JSON.stringify(diff, null, 2));
-                update(state => ({
-                    ...state,
-                    fileDiff: diff,
-                    isDiffLoading: false
-                }));
+                const virtualPath = `[diff] ${file}`;
+                
+                if (diff.isBinary) {
+                    fileStore.openVirtualFile(virtualPath, "Binary file not shown", "text", "file");
+                } else {
+                    fileStore.openVirtualFile(virtualPath, diff.content, "diff", "diff", diff.stats);
+                }
             } catch (error) {
-                update(state => ({
-                    ...state,
-                    fileDiff: null,
-                    isDiffLoading: false,
-                    diffError: `Failed to load diff: ${error}`
-                }));
+                console.error(`Failed to load diff: ${error}`);
             }
         },
 
@@ -608,6 +589,7 @@ function createGitStore() {
                 gitStatus: [],
                 stagedExpanded: true,
                 changesExpanded: true,
+                hierarchicalView: false,
                 isRepository: false,
                 isLoading: false,
                 isQuickRefreshing: false,
@@ -619,12 +601,7 @@ function createGitStore() {
                 commitsLoading: false,
                 commitsError: null,
                 HEAD: null,
-                initialized: false,
-                selectedFile: null,
-                selectedFileStaged: false,
-                fileDiff: null,
-                isDiffLoading: false,
-                diffError: null
+                initialized: false
             });
         }
     };

@@ -1,7 +1,7 @@
 <script lang="ts">
     import { Edit, FolderPlus, Plus, Trash2 } from "lucide-svelte";
-    import FileTreeItem from "@/lib/editor/FileTreeItem.svelte";
-    import ContextMenu from "@/lib/editor/ContextMenu.svelte";
+    import FileTreeItem from "@/lib/editor/explorer/FileTreeItem.svelte";
+    import ContextMenu from "@/lib/components/ContextMenu.svelte";
     import type { service } from "@/lib/wailsjs/go/models";
     import { fileStore } from "@/stores/fileStore";
     import { LoadDirectoryContents } from "@/lib/wailsjs/go/main/App";

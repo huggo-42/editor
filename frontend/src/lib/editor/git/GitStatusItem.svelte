@@ -1,15 +1,16 @@
 <script lang="ts">
     import { File, Loader, Plus, Undo, Trash2 } from "lucide-svelte";
     import Button from "@/lib/components/Button.svelte";
-    import Modal from "@/lib/components/Modal.svelte";
     import { gitStore } from "@/stores/gitStore";
     import type { service } from "@/lib/wailsjs/go/models";
+    import { createEventDispatcher } from "svelte";
 
     export let item: service.FileStatus;
     export let isStaged: boolean;
 
-    let showDiscardModal = false;
-    let fileToDiscard: string | null = null;
+    const dispatch = createEventDispatcher<{
+        discard: { file: string };
+    }>();
 
     // Status color mapping
     const getStatusColor = (status: string) => {
@@ -32,30 +33,16 @@
                 return "text-gray-500";
         }
     };
-
-    function handleDiscardClick(file: string) {
-        fileToDiscard = file;
-        showDiscardModal = true;
-    }
-
-    async function handleDiscardConfirm() {
-        if (fileToDiscard) {
-            await gitStore.discardChanges(fileToDiscard);
-            showDiscardModal = false;
-            fileToDiscard = null;
-        }
-    }
-
-    function handleDiscardCancel() {
-        showDiscardModal = false;
-        fileToDiscard = null;
-    }
 </script>
 
+<!-- svelte-ignore a11y-click-events-have-key-events -->
+<!-- svelte-ignore a11y-no-static-element-interactions -->
 <div 
     class="flex items-center text-sm py-1 group hover:bg-gray-800 rounded-sm mx-1 hover:rounded-md cursor-pointer"
-    on:click={() => gitStore.getDiff(item.file, isStaged)}
-    class:bg-gray-800={$gitStore.selectedFile === item.file && $gitStore.selectedFileStaged === isStaged}
+    on:click={(e) => {
+        e.stopPropagation();
+        gitStore.getDiff(item.file, isStaged);
+    }}
 >
     <div class="flex items-center px-2 w-full">
         {#if $gitStore.loadingFiles.has(item.file)}
@@ -64,7 +51,8 @@
             <File class="w-4 h-4 text-gray-500 mr-2 flex-shrink-0" />
         {/if}
         <span class="text-gray-300 truncate flex-1" title={item.file}>
-            {item.file}
+            {item.file.split('/').pop()}
+            <span class="text-gray-500 ml-1">{item.file.split('/').slice(0, -1).join('/')}</span>
         </span>
         <div class="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
             {#if isStaged}
@@ -73,7 +61,10 @@
                     size="sm"
                     icon={Undo}
                     title="Unstage Changes"
-                    on:click={() => gitStore.unstageFile(item.file)}
+                    on:click={(e) => {
+                        e.stopPropagation();
+                        gitStore.unstageFile(item.file);
+                    }}
                     disabled={$gitStore.loadingFiles.has(item.file)}
                 />
             {:else}
@@ -82,7 +73,10 @@
                     size="sm"
                     icon={Plus}
                     title="Stage Changes"
-                    on:click={() => gitStore.stageFile(item.file)}
+                    on:click={(e) => {
+                        e.stopPropagation();
+                        gitStore.stageFile(item.file);
+                    }}
                     disabled={$gitStore.loadingFiles.has(item.file)}
                 />
                 <Button
@@ -90,7 +84,10 @@
                     size="sm"
                     icon={Trash2}
                     title="Discard Changes"
-                    on:click={() => handleDiscardClick(item.file)}
+                    on:click={(e) => {
+                        e.stopPropagation();
+                        dispatch('discard', { file: item.file });
+                    }}
                     disabled={$gitStore.loadingFiles.has(item.file)}
                 />
             {/if}
@@ -104,17 +101,3 @@
         </span>
     </div>
 </div>
-
-<Modal
-    show={showDiscardModal}
-    title="Discard Changes"
-    confirmText="Discard"
-    confirmButtonClass="bg-red-600 hover:bg-red-700"
-    on:close={handleDiscardCancel}
-    on:confirm={handleDiscardConfirm}
->
-    <div class="p-4">
-        <p>Are you sure you want to discard changes in <span class="font-mono text-gray-300">{fileToDiscard}</span>?</p>
-        <p class="mt-2 text-gray-400">This action cannot be undone.</p>
-    </div>
-</Modal>

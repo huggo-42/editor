@@ -75,7 +75,6 @@
 
     // Handle terminal events from backend
     function handleTerminalEvent(event: any) {
-        console.log('[Terminal] Received event:', event);
         if (!terminal || isDestroyed) return;
 
         switch (event.Type) {
@@ -86,19 +85,15 @@
                     const binaryStr = atob(base64Data);
                     const bytes = Uint8Array.from(binaryStr, c => c.charCodeAt(0));
                     
-                    console.log('[Terminal] Writing decoded data:', new TextDecoder().decode(bytes));
                     terminal.write(bytes);
                 }
                 break;
             case 1: // EventResize
-                console.log('[Terminal] Resize event:', event);
                 terminal.resize(event.Cols, event.Rows);
                 break;
             case 2: // EventCursor
-                console.log('[Terminal] Cursor event:', event);
                 break;
             case 3: // EventExit
-                console.log('[Terminal] Exit event received');
                 isDestroyed = true;
                 terminal.write('\r\nTerminal session ended.\r\n');
                 break;
@@ -107,7 +102,6 @@
 
     // Watch for height changes
     $: if (height && terminal && !isDestroyed) {
-        console.log('[Terminal] Height changed:', height);
         updateTerminalSize();
     }
 
@@ -120,10 +114,6 @@
 
     async function initializeTerminal() {
         if (isInitialized || isDestroyed) return;
-        
-        console.log('[Terminal] Mounting component');
-
-        console.log('[Terminal] config:', config);
         
         // Create xterm.js instance
         terminal = new Terminal({
@@ -150,7 +140,6 @@
 
         // Handle terminal input
         terminal.onData((data) => {
-            console.log('[Terminal] Input received:', data);
             if (isDestroyed) return;
 
             // Special handling for Enter key
@@ -173,7 +162,6 @@
         console.log('[Terminal] Creating backend terminal');
         try {
             await CreateTerminal(id, shell, projectPath);
-            console.log('[Terminal] Backend terminal created');
 
             // Subscribe to terminal events
             console.log('[Terminal] Subscribing to events');

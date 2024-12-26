@@ -9,6 +9,8 @@
     export let type: 'button' | 'submit' = 'button';
     export let fullWidth: boolean = false;
 
+    const customClasses: string = $$props.class || '';
+
     const variantClasses = {
         primary: 'bg-blue-600 text-white hover:bg-sky-700',
         secondary: 'bg-gray-800 text-gray-300 hover:bg-gray-700',
@@ -22,6 +24,8 @@
         ? size === 'sm' ? 'px-3 py-1.5' : 'px-4 py-1.5'
         : size === 'sm' ? 'p-1.5' : 'p-2';
 
+    
+
     $: classes = `
         ${variantClasses[variant]}
         ${padding}
@@ -34,6 +38,7 @@
         disabled:opacity-50
         disabled:cursor-not-allowed
         transition-colors
+        ${customClasses}
     `;
 </script>
 
