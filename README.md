@@ -45,8 +45,7 @@ EditAI combines these technologies to create a high-performance editor with nati
 
 
 **Source control**
-
-![screenshot-2024-12-03-10-42-12](https://github.com/user-attachments/assets/75de0fac-547a-45d7-bdd1-e31843cefe26)
+![image](https://github.com/user-attachments/assets/3bee36a4-fe8a-4897-8907-0183d3d11aa2)
 
 **Command pallete**
 
@@ -55,8 +54,8 @@ EditAI combines these technologies to create a high-performance editor with nati
 
 
 **Fuzzy finder**
+![image](https://github.com/user-attachments/assets/6dba92ff-361e-4b10-a74d-09c16bb24425)
 
-![screenshot-2024-12-03-11-27-56](https://github.com/user-attachments/assets/e18e7d38-aaf5-43e4-b5a9-6c1e932059eb)
 
 **Vim mode**
 ![screenshot-2024-12-08-21-06-27](https://github.com/user-attachments/assets/57d1ccb9-a6e2-4e56-90e1-e28eae9382c7)
