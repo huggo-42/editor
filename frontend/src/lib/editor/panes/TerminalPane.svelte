@@ -1,6 +1,6 @@
 <script lang="ts">
     import XtermComponent from '@/lib/terminal/XtermComponent.svelte';
-    import { terminalStore, availableShells, terminalVisibility } from '@/stores/terminalStore';
+    import { terminalStore, availableShells } from '@/stores/terminalStore';
     import { bottomPaneStore } from '@/stores/bottomPaneStore';
     import { Plus, X, ChevronLeft, ChevronRight, Terminal } from 'lucide-svelte';
     import Button from '@/lib/components/Button.svelte';
@@ -8,7 +8,7 @@
     import { get } from 'svelte/store';
 
     // Get the height from BottomPane
-    export let height: number;
+    export let show: boolean = false;
 
     let selectedShell = get(availableShells)[0];
     let tabsContainer: HTMLElement;
@@ -77,7 +77,7 @@
     }
 </script>
 
-<div class="h-full w-full bg-gray-800 overflow-hidden flex flex-col" class:hidden={!$terminalVisibility}>
+<div class="h-full w-full bg-gray-800 overflow-hidden flex flex-col" class:hidden={!show}>
     <div class="flex items-center justify-between h-[35px] px-4 border-b border-gray-700">
         <div class="flex items-center space-x-2">
             <span class="text-sm font-medium flex gap-2">
@@ -153,7 +153,7 @@
             >
                 <XtermComponent 
                     bind:this={terminals[tab.id]} 
-                    {height} 
+                    height={$bottomPaneStore.height} 
                     id={tab.id} 
                     shell={tab.shell} 
                     active={tab.active} 

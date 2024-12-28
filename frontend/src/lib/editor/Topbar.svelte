@@ -59,7 +59,7 @@
     <button
       on:click={toggleTerminal}
       class="p-2 hover:bg-gray-800 rounded-sm relative {$terminalVisibility ? 'bg-gray-800 text-gray-200' : 'text-gray-400'}"
-      use:tooltip={{ content: "Toggle Terminal", position: "bottom" }}
+      use:tooltip={{ text: "Toggle Terminal" }}
     >
       <Terminal size={16} />
     </button>

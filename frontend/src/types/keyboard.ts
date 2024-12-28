@@ -4,6 +4,7 @@ export type KeyboardContext =
     | 'global' 
     | 'commandPalette' 
     | 'fileFinder' 
+    | 'terminal'
     | 'editor'
     | 'aiAssistant'
     | 'git'

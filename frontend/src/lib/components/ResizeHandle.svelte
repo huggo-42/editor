@@ -1,6 +1,9 @@
 <script lang="ts">
     import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown } from 'lucide-svelte';
     import { fade } from 'svelte/transition';
+    import { createEventDispatcher } from 'svelte';
+    
+    const dispatch = createEventDispatcher();
     
     export let orientation: 'horizontal' | 'vertical' = 'vertical';
     export let side: 'left' | 'right' | 'top' | 'bottom' = 'right';
@@ -44,6 +47,7 @@
                 newSize = Math.max(minSize, Math.min(maxSize, startSize + delta));
             }
             size = newSize;
+            dispatch('resize', { size: newSize });
         };
         
         const mouseUpHandler = () => {
@@ -82,10 +86,9 @@
 
 <!-- svelte-ignore a11y-no-static-element-interactions -->
 <div
-    class={`relative group select-none z-[9999] ${resizeClasses}`}
+    class={`relative group select-none border-2 border-transparent z-[9999] ${resizeClasses}`}
     class:bg-sky-500={isDragging}
     class:border-sky-500={isDragging}
-    class:border-2={isDragging}
     on:mousedown={handleMouseDown}
     on:mouseenter={handleMouseEnter}
     on:mouseleave={handleMouseLeave}

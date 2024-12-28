@@ -44,21 +44,16 @@
         resizeTimeout = window.setTimeout(async () => {
             const computedStyle = window.getComputedStyle(terminalElement);
             const width = parseInt(computedStyle.width);
-            const paddingLeft = parseInt(computedStyle.paddingLeft);
-            const paddingRight = parseInt(computedStyle.paddingRight);
-            const paddingTop = parseInt(computedStyle.paddingTop);
-            const paddingBottom = parseInt(computedStyle.paddingBottom);
-
-            const availableWidth = width - paddingLeft - paddingRight;
-            const availableHeight = height - paddingTop - paddingBottom;
+            const availableWidth = parseInt(computedStyle.width);
+            const availableHeight = parseInt(computedStyle.height)
 
             // TODO: Account for bottom status bar without hardcoding
             const bottomBarRows = 3;
 
-            const charWidth = 9;
+            const charWidth = 8.7;
             const charHeight = 17;
             const cols = Math.floor(availableWidth / charWidth);
-            const rows = Math.floor(availableHeight / charHeight) - bottomBarRows;
+            const rows = Math.floor(availableHeight / charHeight);
 
             console.log('[Terminal] Resizing to:', { cols, rows });
             terminal!.resize(cols, rows);
@@ -124,7 +119,7 @@
             fontSize: terminalConfig.fontSize,
             fontFamily: terminalConfig.fontFamily,
             // Prevent terminal from handling our keyboard shortcuts
-            allowTransparency: true
+            allowTransparency: true,
         });
 
         terminal.attachCustomKeyEventHandler((event: KeyboardEvent) => {

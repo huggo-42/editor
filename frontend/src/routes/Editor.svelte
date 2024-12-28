@@ -22,13 +22,6 @@
 
     let editorTabs: { layout: () => void } | null = null;
 
-    // Convert open files to tabs
-    $: tabs = Array.from($fileStore.openFiles.entries()).map(([path, file]) => ({
-        id: path,
-        name: path.split('/').pop() || '',
-        active: path === $fileStore.activeFilePath,
-        isDirty: file.isDirty
-    }));
 
     // Sidebar states
     let leftSidebarState: SidebarState = {
@@ -44,13 +37,17 @@
     let showFileFinder = false;
     let showCommitSearch = false;
 
-    // Bottom pane state
-    let bottomPaneState = $bottomPaneStore;
-
     // Sidebar widths and heights
     let leftSidebarWidth = 300;
     let rightSidebarWidth = 600;
-    let bottomPaneHeight = 300;
+
+    function handleResize(event: CustomEvent) {
+        // Call layout on the EditorTabs component
+        editorTabs?.layout();
+
+        // Force a re-render of the bottom pane
+        bottomPaneStore.update(state => ({ ...state, height: event.detail.height }));
+    }
 
     // Source control state
     $: modifiedFilesCount = $gitStore.gitStatus.length;
@@ -79,11 +76,6 @@
     $: if ($fileStore.activeFilePath) {
         // Wait for the DOM to update before scrolling
         setTimeout(() => setActiveTab($fileStore.activeFilePath), 0);
-    }
-
-    function handleResize() {
-        // Call layout on the EditorTabs component
-        editorTabs?.layout();
     }
 
     function toggleSourceControl() {
@@ -197,17 +189,26 @@
                 on:closeRequest={handleCloseRequest}
             />
 
-            {#if !$bottomPaneStore.collapsed}
-                <ResizeHandle 
-                    orientation="horizontal" 
-                    side="top"
-                    bind:size={bottomPaneHeight}
-                    minSize={100} 
-                    maxSize={800}
-                    on:resize={handleResize}
-                />
-                <BottomPane state={$bottomPaneStore} height={bottomPaneHeight} />
-            {/if}
+                {#if !$bottomPaneStore.collapsed}
+                    <ResizeHandle 
+                        orientation="horizontal" 
+                        side="top"
+                        size={$bottomPaneStore.height}
+                        maxSize={800}
+                        on:resize={(event) => {
+                            handleResize(event);
+                            bottomPaneStore.update(state => ({ ...state, height: event.detail.size }));
+                        }}
+                    />
+                {/if}
+
+                <!-- Bottom pane -->
+                <div class="flex flex-col overflow-hidden"
+                    class:hidden={$bottomPaneStore.collapsed}
+                    style:height={`${$bottomPaneStore.height}px`}
+                >
+                    <BottomPane />
+                </div>
         </div>
 
         {#if !rightSidebarCollapsed}
