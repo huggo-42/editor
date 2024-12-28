@@ -3,9 +3,13 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 
+	"github.com/amacneil/dbmate/v2/pkg/dbmate"
+	_ "github.com/amacneil/dbmate/v2/pkg/driver/sqlite"
+	"github.com/edit4i/editor/db/migrations"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -45,6 +49,24 @@ func InitDB(cfg *Config) (*sql.DB, error) {
 
 	// Full database path
 	dbPath := filepath.Join(cfg.Directory, cfg.Filename)
+
+	// Run migrations first using the same code as the migrate command
+	dbURL := &url.URL{
+		Scheme: "sqlite",
+		Path:   dbPath,
+	}
+
+	// Initialize dbmate with the same configuration as the migrate command
+	migrator := dbmate.New(dbURL)
+	migrator.FS = migrations.FS
+	migrator.MigrationsDir = []string{"."}
+	migrator.AutoDumpSchema = false
+	migrator.Verbose = true
+
+	// Run migrations
+	if err := migrator.CreateAndMigrate(); err != nil {
+		return nil, fmt.Errorf("error running migrations: %v", err)
+	}
 
 	// Open database connection
 	db, err := sql.Open("sqlite3", dbPath)
