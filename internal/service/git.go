@@ -57,10 +57,29 @@ type CommitFilter struct {
 
 // FileDiff represents the diff information for a file
 type FileDiff struct {
-	Path     string    `json:"path"`     // File path
-	Content  string    `json:"content"`  // Diff content in unified format
-	Stats    DiffStats `json:"stats"`    // Statistics about the changes
-	IsBinary bool      `json:"isBinary"` // Whether the file is binary
+	Path        string    `json:"path"`     // File path
+	UnifiedDiff string    `json:"content"`  // Diff content in unified format
+	Hunks       []Hunk    `json:"hunks"`    // List of change hunks
+	Stats       DiffStats `json:"stats"`    // Statistics about the changes
+	IsBinary    bool      `json:"isBinary"` // Whether the file is binary
+}
+
+// Hunk represents a section of changes in a diff
+type Hunk struct {
+	ID       string   `json:"id"`       // Unique identifier for the hunk
+	Header   string   `json:"header"`   // The @@ -1,7 +1,6 @@ style header
+	OldStart int      `json:"oldStart"` // Starting line in the old file
+	OldLines int      `json:"oldLines"` // Number of lines in the old file
+	NewStart int      `json:"newStart"` // Starting line in the new file
+	NewLines int      `json:"newLines"` // Number of lines in the new file
+	Changes  []Change `json:"changes"`  // The actual line changes in this hunk
+}
+
+// Change represents a single line change in a diff
+type Change struct {
+	Type    string `json:"type"`    // "add", "delete", or "context"
+	Content string `json:"content"` // The line content without prefix
+	LineNum int    `json:"lineNum"` // Line number in the file
 }
 
 // DiffStats contains statistics about changes in a diff
@@ -629,7 +648,7 @@ func (s *GitService) GetHeadCommit(projectPath string) (*CommitInfo, error) {
 // GetFileDiff returns the diff for a specific file
 // If staged is true, returns the diff between HEAD and staged changes
 // If staged is false, returns the diff between staged/HEAD and working directory
-func (s *GitService) GetFileDiff(projectPath string, filePath string, staged bool) (*FileDiff, error) {
+func (s *GitService) GetFileDiff(projectPath string, filePath string, staged bool, includeUnifiedDiff bool) (*FileDiff, error) {
 	repo, err := git.PlainOpen(projectPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open repository: %w", err)
@@ -684,10 +703,10 @@ func (s *GitService) GetFileDiff(projectPath string, filePath string, staged boo
 		}
 
 		return &FileDiff{
-			Path:     filePath,
-			Content:  diff,
-			Stats:    stats,
-			IsBinary: false,
+			Path:        filePath,
+			UnifiedDiff: diff,
+			Stats:       stats,
+			IsBinary:    false,
 		}, nil
 	}
 
@@ -719,12 +738,25 @@ func (s *GitService) GetFileDiff(projectPath string, filePath string, staged boo
 		return nil, err
 	}
 
-	return &FileDiff{
-		Path:     filePath,
-		Content:  diff,
-		Stats:    stats,
-		IsBinary: false,
-	}, nil
+	// Parse hunks from the diff content
+	hunks, err := s.parseHunks(diff)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse hunks: %w", err)
+	}
+
+	result := &FileDiff{
+		Path:        filePath,
+		UnifiedDiff: diff,
+		Hunks:       hunks,
+		Stats:       stats,
+		IsBinary:    false,
+	}
+
+	if includeUnifiedDiff {
+		result.UnifiedDiff = diff
+	}
+
+	return result, nil
 }
 
 // getStagedDiff returns the diff between HEAD and index
@@ -947,6 +979,80 @@ func (s *GitService) generateDiff(oldContent, newContent, filePath string) (stri
 	return diffOutput.String(), stats, nil
 }
 
+// parseHunks parses a unified diff format into a slice of Hunks
+func (s *GitService) parseHunks(diffContent string) ([]Hunk, error) {
+	if diffContent == "" {
+		return nil, nil
+	}
+
+	lines := strings.Split(diffContent, "\n")
+	var hunks []Hunk
+	var currentHunk *Hunk
+	var lineNum int
+
+	for _, line := range lines {
+		if strings.HasPrefix(line, "@@") {
+			// If we have a current hunk, append it to hunks
+			if currentHunk != nil {
+				hunks = append(hunks, *currentHunk)
+			}
+
+			// Parse hunk header
+			var oldStart, oldLines, newStart, newLines int
+			_, err := fmt.Sscanf(line, "@@ -%d,%d +%d,%d @@", &oldStart, &oldLines, &newStart, &newLines)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse hunk header: %w", err)
+			}
+
+			// Create new hunk
+			currentHunk = &Hunk{
+				ID:       fmt.Sprintf("hunk_%d_%d", oldStart, newStart),
+				Header:   line,
+				OldStart: oldStart,
+				OldLines: oldLines,
+				NewStart: newStart,
+				NewLines: newLines,
+				Changes:  []Change{},
+			}
+			lineNum = newStart
+		} else if currentHunk != nil {
+			// Skip empty lines at the start
+			if len(line) == 0 {
+				continue
+			}
+
+			// Parse change type and content
+			changeType := "context"
+			content := line
+			if strings.HasPrefix(line, "+") {
+				changeType = "add"
+				content = line[1:]
+				lineNum++
+			} else if strings.HasPrefix(line, "-") {
+				changeType = "delete"
+				content = line[1:]
+			} else if strings.HasPrefix(line, " ") {
+				content = line[1:]
+				lineNum++
+			}
+
+			// Add change to current hunk
+			currentHunk.Changes = append(currentHunk.Changes, Change{
+				Type:    changeType,
+				Content: content,
+				LineNum: lineNum,
+			})
+		}
+	}
+
+	// Append last hunk if exists
+	if currentHunk != nil {
+		hunks = append(hunks, *currentHunk)
+	}
+
+	return hunks, nil
+}
+
 // getFileContents reads a file's contents
 func (s *GitService) getFileContents(path string) (string, error) {
 	content, err := os.ReadFile(path)
@@ -972,4 +1078,34 @@ func isFileBinary(path string) (bool, error) {
 	}
 
 	return strings.Contains(http.DetectContentType(buffer[:n]), "application/octet-stream"), nil
+}
+
+// StageHunk stages a specific hunk from a file
+func (s *GitService) StageHunk(projectPath string, filePath string, hunkID string) error {
+	// TODO: Implement actual hunk staging
+	// 1. Get the worktree
+	// 2. Get the file diff
+	// 3. Find the specific hunk
+	// 4. Apply the hunk using git apply --cached
+	return nil
+}
+
+// UnstageHunk unstages a specific hunk from a file
+func (s *GitService) UnstageHunk(projectPath string, filePath string, hunkID string) error {
+	// TODO: Implement actual hunk unstaging
+	// 1. Get the worktree
+	// 2. Get the file diff
+	// 3. Find the specific hunk
+	// 4. Apply reverse patch to staged changes
+	return nil
+}
+
+// RevertHunk reverts a specific hunk in the working directory
+func (s *GitService) RevertHunk(projectPath string, filePath string, hunkID string) error {
+	// TODO: Implement actual hunk reverting
+	// 1. Get the worktree
+	// 2. Get the file diff
+	// 3. Find the specific hunk
+	// 4. Apply reverse patch to working directory
+	return nil
 }

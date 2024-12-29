@@ -41,7 +41,7 @@ func (a *App) startup(ctx context.Context) {
 	a.projects = service.NewProjectsService(dbConn)
 	a.files = service.NewFileService()
 	a.git = service.NewGitService(a.files)
-	
+
 	config, err := service.NewConfigService()
 	if err != nil {
 		panic(fmt.Errorf("Failed to initialize ConfigService: %v", err))
@@ -251,6 +251,6 @@ func (a *App) GetHeadCommit(projectPath string) (*service.CommitInfo, error) {
 }
 
 // GetFileDiff returns the diff for a specific file
-func (a *App) GetFileDiff(projectPath string, filePath string, staged bool) (*service.FileDiff, error) {
-	return a.git.GetFileDiff(projectPath, filePath, staged)
+func (a *App) GetFileDiff(projectPath string, filePath string, staged bool, includeUnifiedDiff bool) (*service.FileDiff, error) {
+	return a.git.GetFileDiff(projectPath, filePath, staged, includeUnifiedDiff)
 }
