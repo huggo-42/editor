@@ -72,12 +72,14 @@ type DiffStats struct {
 
 // GitService handles Git operations for projects
 type GitService struct {
-	// We might want to add a cache of repositories later
+	fileService *FileService
 }
 
 // NewGitService creates a new Git service instance
-func NewGitService() *GitService {
-	return &GitService{}
+func NewGitService(fileService *FileService) *GitService {
+	return &GitService{
+		fileService: fileService,
+	}
 }
 
 // IsGitRepository checks if the given directory is a Git repository
@@ -162,6 +164,12 @@ func (s *GitService) GetStatus(projectPath string) ([]FileStatus, error) {
 	for file, fileStatus := range status {
 		// Skip unmodified files
 		if fileStatus.Staging == git.Unmodified && fileStatus.Worktree == git.Unmodified {
+			continue
+		}
+
+		// Check if file is ignored using FileService
+		fullPath := filepath.Join(absPath, file)
+		if s.fileService.isIgnored(absPath, fullPath) {
 			continue
 		}
 

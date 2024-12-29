@@ -40,8 +40,8 @@ func (a *App) startup(ctx context.Context) {
 	// Initialize services
 	a.projects = service.NewProjectsService(dbConn)
 	a.files = service.NewFileService()
-	a.git = service.NewGitService()
-
+	a.git = service.NewGitService(a.files)
+	
 	config, err := service.NewConfigService()
 	if err != nil {
 		panic(fmt.Errorf("Failed to initialize ConfigService: %v", err))
