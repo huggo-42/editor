@@ -1,8 +1,9 @@
 <script lang="ts">
-  import { GitBranch, AlertCircle, CheckCircle } from 'lucide-svelte';
+  import { GitBranch, AlertCircle, CheckCircle, ChevronDown } from 'lucide-svelte';
   import Select from '../components/Select.svelte';
   import Button from '../components/Button.svelte';
   import { gitStore } from '@/stores/gitStore';
+  import { bottomPaneStore } from '@/stores/bottomPaneStore';
   import { onMount } from 'svelte';
 
   interface Diagnostic {
@@ -40,6 +41,13 @@
   // Derived values for branch options
   $: branchOptions = $gitStore.branches.map(branch => branch.name);
   $: currentBranch = $gitStore.currentBranch;
+
+  function toggleBottomPane() {
+    bottomPaneStore.update(state => ({
+      ...state,
+      collapsed: !state.collapsed
+    }));
+  }
 </script>
 
 <div class="bg-gray-900 border-t border-gray-800 flex justify-between items-center h-[35px] px-4 text-sm">
@@ -51,16 +59,22 @@
       disabled={!$gitStore.isRepository}
     />
     {#if $gitStore.isRepository}
-      <div class="w-40">
-        <Select
-          value={selectedBranch}
-          options={branchOptions}
-          variant="compact"
-          disabled={$gitStore.isLoading}
-          on:change={handleBranchChange}
-        />
-      </div>
+      <Select 
+        options={branchOptions} 
+        value={selectedBranch} 
+        on:change={handleBranchChange}
+        disabled={$gitStore.isLoading}
+        class="w-40"
+      />
     {/if}
+    <Button
+      variant="ghost"
+      size="sm"
+      icon={ChevronDown}
+      on:click={toggleBottomPane}
+      tooltipParams={{ text: 'Toggle Bottom Pane', command: 'editor.toggleBottomPane' }}
+      class="transform {$bottomPaneStore.collapsed ? 'rotate-180' : ''}"
+    />
   </div>
   <div class="flex items-center space-x-4">
     {#each diagnostics as diagnostic}

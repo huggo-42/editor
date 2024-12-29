@@ -1,5 +1,6 @@
 <script lang="ts">
     import type { LucideIcon } from 'lucide-svelte';
+    import { tooltip } from '../actions/tooltip';
 
     export let variant: 'primary' | 'secondary' | 'ghost' = 'secondary';
     export let size: 'sm' | 'md' = 'md';
@@ -8,6 +9,7 @@
     export let title: string | undefined = undefined;
     export let type: 'button' | 'submit' = 'button';
     export let fullWidth: boolean = false;
+    export let tooltipParams: { show?: boolean; text: string; command?: string } | null = null;
 
     const customClasses: string = $$props.class || '';
 
@@ -48,6 +50,7 @@
     {title}
     class={classes}
     on:click
+    use:tooltip={{ show: tooltipParams?.show, text: tooltipParams?.text, command: tooltipParams?.command }}
 >
     {#if icon}
         <svelte:component this={icon} size={size === 'sm' ? 14 : 16} />
