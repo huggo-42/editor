@@ -95,7 +95,7 @@
 </script>
 
 {#if tabs.length > 0}
-<div class="flex flex-col flex-1 bg-red-200">
+<div class="flex flex-col flex-1">
     <!-- Tabs -->
     <div class="flex items-center bg-gray-900 border-b border-gray-700">
         <div class="flex-1 flex items-center overflow-y-hidden overflow-x-auto scrollbar-hide relative" 
