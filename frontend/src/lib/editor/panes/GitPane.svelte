@@ -7,6 +7,7 @@
     import GitStagedChanges from "@/lib/editor/git/GitStagedChanges.svelte";
     import GitUnstagedChanges from "@/lib/editor/git/GitUnstagedChanges.svelte";
     import GitCommitSection from "@/lib/editor/git/GitCommitSection.svelte";
+    import GitViewToggle from "@/lib/editor/git/GitViewToggle.svelte";
 
     onMount(async () => {
         await gitStore.checkRepository();
@@ -46,6 +47,10 @@
         <GitRepositoryStatus />
         
         {#if $gitStore.isRepository && !$gitStore.isLoading && !$gitStore.error}
+            <div class="px-4 py-2 border-b border-gray-800">
+                <GitViewToggle
+                />
+            </div>
             <div class="p-1 pt-2 flex-1">
                 <GitStagedChanges />
                 <GitUnstagedChanges />

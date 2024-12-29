@@ -25,6 +25,7 @@ interface GitState {
     stagedExpanded: boolean;
     changesExpanded: boolean;
     hierarchicalView: boolean;
+    showDiff: boolean;
     isRepository: boolean;
     isLoading: boolean;
     isQuickRefreshing: boolean;
@@ -45,6 +46,7 @@ function createGitStore() {
         stagedExpanded: true,
         changesExpanded: true,
         hierarchicalView: false,
+        showDiff: true,
         isRepository: false,
         isLoading: true,
         isQuickRefreshing: false,
@@ -262,6 +264,11 @@ function createGitStore() {
         toggleHierarchicalView: () => update(state => ({
             ...state,
             hierarchicalView: !state.hierarchicalView
+        })),
+
+        toggleDiffView: () => update(state => ({
+            ...state,
+            showDiff: !state.showDiff
         })),
 
         setGitStatus: (status: service.FileStatus[]) => update(state => ({
@@ -590,6 +597,7 @@ function createGitStore() {
                 stagedExpanded: true,
                 changesExpanded: true,
                 hierarchicalView: false,
+                showDiff: true,
                 isRepository: false,
                 isLoading: false,
                 isQuickRefreshing: false,

@@ -2,6 +2,7 @@
     import { File, Loader, Plus, Undo, Trash2 } from "lucide-svelte";
     import Button from "@/lib/components/Button.svelte";
     import { gitStore } from "@/stores/gitStore";
+    import { fileStore } from "@/stores/fileStore";
     import type { service } from "@/lib/wailsjs/go/models";
     import { createEventDispatcher } from "svelte";
 
@@ -33,16 +34,24 @@
                 return "text-gray-500";
         }
     };
+
+    function handleClick(e: MouseEvent) {
+        if ($gitStore.showDiff) {
+            gitStore.getDiff(item.file, isStaged);
+        } else {
+            const fullPath = $fileStore.currentProjectPath + '/' + item.file;
+            fileStore.openFile(fullPath);
+            console.log('Opening file', fullPath);
+        }
+        e.stopPropagation();
+    }
 </script>
 
 <!-- svelte-ignore a11y-click-events-have-key-events -->
 <!-- svelte-ignore a11y-no-static-element-interactions -->
 <div 
     class="flex items-center text-sm py-1 group hover:bg-gray-800 rounded-sm mx-1 hover:rounded-md cursor-pointer"
-    on:click={(e) => {
-        e.stopPropagation();
-        gitStore.getDiff(item.file, isStaged);
-    }}
+    on:click={handleClick}
 >
     <div class="flex items-center px-2 w-full">
         {#if $gitStore.loadingFiles.has(item.file)}
