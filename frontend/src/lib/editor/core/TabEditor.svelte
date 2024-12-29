@@ -10,8 +10,6 @@
     import Breadcrumbs from "@/lib/editor/Breadcrumbs.svelte";
     import DiffHeader from "@/lib/editor/git/changes/DiffHeader.svelte";
     import { addKeyboardContext } from "@/stores/keyboardStore";
-    import { GetFileContent } from "@/lib/wailsjs/go/main/App";
-    import type { service } from '@/lib/wailsjs/go/models';
 
     const dispatch = createEventDispatcher();
 
@@ -139,6 +137,10 @@
                 ...baseOptions,
                 readOnly: true,
                 originalEditable: false,
+                hideUnchangedRegions: {
+                    contextLineCount: 4,
+                    enabled: true
+                },
                 renderSideBySide: false,
                 ignoreTrimWhitespace: false,
                 enableSplitViewResizing: false,
