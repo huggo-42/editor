@@ -99,7 +99,7 @@
 
         // Create editor with initial config
         const config = $editorConfigStore.editor;
-        const baseOptions = {
+        const baseOptions: monaco.editor.IStandaloneEditorConstructionOptions = {
             theme: config.theme,
             fontSize: config.fontSize,
             tabSize: config.tabSize,
@@ -133,7 +133,6 @@
                 ...baseOptions,
                 readOnly: true,
                 originalEditable: false,
-                modifiedEditable: false,
                 renderSideBySide: false,
                 ignoreTrimWhitespace: false,
                 enableSplitViewResizing: false
