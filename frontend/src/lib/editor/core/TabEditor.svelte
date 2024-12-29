@@ -11,20 +11,21 @@
     import DiffHeader from "@/lib/editor/git/changes/DiffHeader.svelte";
     import { addKeyboardContext } from "@/stores/keyboardStore";
     import { GetFileContent } from "@/lib/wailsjs/go/main/App";
+    import type { service } from '@/lib/wailsjs/go/models';
 
     const dispatch = createEventDispatcher();
 
     export let filepath: string;
     export let active = false;
 
-    let editor:
-        | monaco.editor.IStandaloneCodeEditor
-        | monaco.editor.IStandaloneDiffEditor;
+    let editor: monaco.editor.IStandaloneCodeEditor | monaco.editor.IStandaloneDiffEditor;
+    let modifiedEditor: monaco.editor.IStandaloneCodeEditor;
     let editorContainer: HTMLElement;
     let vimMode: { dispose: () => void } | null = null;
     let vimStatusBar: HTMLElement;
     let vimEnabled = false;
     let editorId = focusStore.generateId("editor");
+    let decorationCollection: monaco.editor.IEditorDecorationsCollection;
 
     // Get file content and language
     $: file = $fileStore.openFiles.get(filepath);
@@ -32,12 +33,8 @@
     $: language = file?.language ?? "plaintext";
     $: isDiff = filepath?.startsWith("[diff]") ?? false;
     $: state = $editorStateStore[filepath];
-
-    // Export layout function for parent to call
-    export function layout() {
-        if (editor) {
-            editor.layout();
-        }
+    $: if (isDiff && file?.hunks) {
+        updateDiffDecorations(file!.hunks!);
     }
 
     // Helper function to get editor content
@@ -45,8 +42,7 @@
         if (!editor) return "";
 
         if (isDiff) {
-            const diffEditor = editor as monaco.editor.IStandaloneDiffEditor;
-            return diffEditor.getModifiedEditor().getValue();
+            return (editor as monaco.editor.IStandaloneDiffEditor).getModifiedEditor().getValue();
         } else {
             return (editor as monaco.editor.IStandaloneCodeEditor).getValue();
         }
@@ -100,6 +96,57 @@
         return { original: original.trimEnd(), modified: modified.trimEnd() };
     }
 
+
+    function updateDiffDecorations(hunks: service.Hunk[]) {
+        if (!editor || !hunks) return;
+
+        // Get the modified editor from diff editor
+        if (isDiff) {
+            modifiedEditor = (editor as monaco.editor.IStandaloneDiffEditor).getModifiedEditor();
+        } else {
+            modifiedEditor = editor as monaco.editor.IStandaloneCodeEditor;
+        }
+
+        // Create decoration collection if it doesn't exist
+        if (!decorationCollection) {
+            decorationCollection = modifiedEditor.createDecorationsCollection();
+        }
+
+        // Create new decorations for each hunk
+        const newDecorations = [];
+        for (const hunk of hunks) {
+            // Line decorations for changes
+            for (const change of hunk.changes) {
+                if (change.type !== 'context') {
+                    newDecorations.push({
+                        range: new monaco.Range(change.lineNum, 1, change.lineNum, 1),
+                        options: {
+                            isWholeLine: true,
+                            className: `diff-line diff-line-${change.type}`,
+                            glyphMarginClassName: `glyph-${change.type}`,
+                            glyphMarginHoverMessage: { value: change.type === 'add' ? 'Stage addition' : 'Stage deletion' }
+                        }
+                    });
+                }
+            }
+        }
+
+        // Set new decorations
+        decorationCollection.set(newDecorations);
+
+        // Add click handler for the glyph margin
+        modifiedEditor.onMouseDown((e) => {
+            if (e.target.type === monaco.editor.MouseTargetType.GUTTER_GLYPH_MARGIN) {
+                const line = e.target.position.lineNumber;
+                const decoration = newDecorations.find(d => d.range.startLineNumber === line);
+                if (decoration) {
+                    console.log('Clicked glyph margin at line:', line);
+                    // TODO: Implement stage/unstage
+                }
+            }
+        });
+    }
+
     onMount(() => {
         if (!editorContainer) return;
 
@@ -122,7 +169,7 @@
                 minimap: { enabled: config.minimap },
                 automaticLayout: true,
                 scrollBeyondLastLine: false,
-                glyphMargin: true,
+                glyphMargin: true, // Enable glyph margin
                 folding: true,
                 lineDecorationsWidth: 10,
                 renderLineHighlight: "all",
@@ -142,6 +189,7 @@
             },
         };
 
+        // Create editor
         if (isDiff) {
             editor = monaco.editor.createDiffEditor(editorContainer, {
                 ...baseOptions,
@@ -161,9 +209,21 @@
                 modified: modifiedModel,
             });
 
+            // Get the modified editor and create decoration collection
+            modifiedEditor = (editor as monaco.editor.IStandaloneDiffEditor).getModifiedEditor();
+            decorationCollection = modifiedEditor.createDecorationsCollection();
+
+            // Apply initial decorations if hunks exist
+            if (file?.hunks) {
+                updateDiffDecorations(file.hunks);
+            }
+
             return () => {
                 originalModel.dispose();
                 modifiedModel.dispose();
+                if (decorationCollection) {
+                    decorationCollection.clear();
+                }
             };
         } else {
             editor = monaco.editor.create(editorContainer, {
@@ -263,6 +323,41 @@
         editor.focus();
         focusStore.focus("editor", editorId);
     }
+
+    // Add styles
+    const styles = document.createElement('style');
+    styles.textContent = `
+        .diff-line {
+            position: relative;
+        }
+        
+        .diff-line-add {
+            background-color: rgba(40, 167, 69, 0.1);
+        }
+        
+        .diff-line-delete {
+            background-color: rgba(220, 53, 69, 0.1);
+        }
+
+        .glyph-add {
+            background-color: #28a745;
+            border-radius: 50%;
+            margin-left: 5px;
+            cursor: pointer;
+        }
+        
+        .glyph-delete {
+            background-color: #dc3545;
+            border-radius: 50%;
+            margin-left: 5px;
+            cursor: pointer;
+        }
+
+        .glyph-add:hover, .glyph-delete:hover {
+            opacity: 0.8;
+        }
+    `;
+    document.head.appendChild(styles);
 </script>
 
 <div class="h-full relative flex flex-grow flex-col" class:hidden={!active}>

@@ -5,6 +5,7 @@ import { getLanguageFromPath } from '@/lib/utils/languageMap';
 
 type FileNode = service.FileNode;
 type DiffStats = service.DiffStats;
+type Hunk = service.Hunk;
 
 interface OpenFile {
     path: string;
@@ -13,6 +14,7 @@ interface OpenFile {
     language: string;
     type: 'file' | 'diff';
     stats?: DiffStats;
+    hunks: Hunk[];
 }
 
 interface FileState {
@@ -158,7 +160,7 @@ function createFileStore() {
         },
 
         // Open a virtual file (for diffs, etc.)
-        openVirtualFile: (path: string, content: string, language: string, type: 'file' | 'diff', stats?: DiffStats) => {
+        openVirtualFile: (path: string, content: string, language: string, type: 'file' | 'diff', stats?: DiffStats, hunks?: Hunk[]) => {
             update(state => {
                 // Create virtual file
                 const virtualFile: OpenFile = {
@@ -167,7 +169,8 @@ function createFileStore() {
                     isDirty: false,
                     language,
                     type,
-                    stats
+                    stats,
+                    hunks: hunks!
                 };
                 
                 // Add to open files
