@@ -27,7 +27,7 @@ export function GetEditorConfig():Promise<service.EditorConfig>;
 
 export function GetFileContent(arg1:string):Promise<string>;
 
-export function GetFileDiff(arg1:string,arg2:string,arg3:boolean):Promise<service.FileDiff>;
+export function GetFileDiff(arg1:string,arg2:string,arg3:boolean,arg4:boolean):Promise<service.FileDiff>;
 
 export function GetGitStatus(arg1:string):Promise<Array<service.FileStatus>>;
 

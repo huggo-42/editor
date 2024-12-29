@@ -567,7 +567,7 @@ function createGitStore() {
                     throw new Error('No project path');
                 }
 
-                const diff = await GetFileDiff(projectPath, file, staged);
+                const diff = await GetFileDiff(projectPath, file, staged, true);
                 const virtualPath = `[diff] ${file}`;
                 
                 if (diff.isBinary) {
@@ -575,6 +575,8 @@ function createGitStore() {
                 } else {
                     fileStore.openVirtualFile(virtualPath, diff.content, "diff", "diff", diff.stats);
                 }
+                
+                return diff;
             } catch (error) {
                 console.error(`Failed to load diff: ${error}`);
             }

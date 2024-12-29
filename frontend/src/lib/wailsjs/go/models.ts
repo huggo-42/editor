@@ -61,6 +61,22 @@ export namespace service {
 	        this.isHead = source["isHead"];
 	    }
 	}
+	export class Change {
+	    type: string;
+	    content: string;
+	    lineNum: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new Change(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.type = source["type"];
+	        this.content = source["content"];
+	        this.lineNum = source["lineNum"];
+	    }
+	}
 	export class CommitFilter {
 	    branch: string;
 	    startHash: string;
@@ -204,9 +220,52 @@ export namespace service {
 		    return a;
 		}
 	}
+	export class Hunk {
+	    id: string;
+	    header: string;
+	    oldStart: number;
+	    oldLines: number;
+	    newStart: number;
+	    newLines: number;
+	    changes: Change[];
+	
+	    static createFrom(source: any = {}) {
+	        return new Hunk(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.header = source["header"];
+	        this.oldStart = source["oldStart"];
+	        this.oldLines = source["oldLines"];
+	        this.newStart = source["newStart"];
+	        this.newLines = source["newLines"];
+	        this.changes = this.convertValues(source["changes"], Change);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 	export class FileDiff {
 	    path: string;
 	    content: string;
+	    hunks: Hunk[];
 	    stats: DiffStats;
 	    isBinary: boolean;
 	
@@ -218,6 +277,7 @@ export namespace service {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.path = source["path"];
 	        this.content = source["content"];
+	        this.hunks = this.convertValues(source["hunks"], Hunk);
 	        this.stats = this.convertValues(source["stats"], DiffStats);
 	        this.isBinary = source["isBinary"];
 	    }
@@ -299,6 +359,7 @@ export namespace service {
 	        this.staged = source["staged"];
 	    }
 	}
+	
 	export class KeyBinding {
 	    key: string;
 	    modifiers: string[];

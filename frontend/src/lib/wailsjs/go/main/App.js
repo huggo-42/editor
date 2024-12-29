@@ -50,8 +50,8 @@ export function GetFileContent(arg1) {
   return window['go']['main']['App']['GetFileContent'](arg1);
 }
 
-export function GetFileDiff(arg1, arg2, arg3) {
-  return window['go']['main']['App']['GetFileDiff'](arg1, arg2, arg3);
+export function GetFileDiff(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['GetFileDiff'](arg1, arg2, arg3, arg4);
 }
 
 export function GetGitStatus(arg1) {
