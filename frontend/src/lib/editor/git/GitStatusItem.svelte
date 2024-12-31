@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { File, Loader, Plus, Undo, Trash2 } from "lucide-svelte";
+    import { File, Loader, Plus, Undo, Trash2, Layers } from "lucide-svelte";
     import Button from "@/lib/components/Button.svelte";
     import { gitStore } from "@/stores/gitStore";
     import { fileStore } from "@/stores/fileStore";
@@ -88,6 +88,16 @@
                     }}
                     disabled={$gitStore.loadingFiles.has(item.file)}
                 />
+                {#if item.status === "M"}
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        icon={Layers}
+                        title="View Hunks"
+                        on:click={openHunksView}
+                        disabled={$gitStore.loadingFiles.has(item.file)}
+                    />
+                {/if}
                 <Button
                     variant="ghost"
                     size="sm"

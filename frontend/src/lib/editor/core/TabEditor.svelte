@@ -16,7 +16,7 @@
     export let filepath: string;
     export let active = false;
 
-    let editor: monaco.editor.IStandaloneCodeEditor | monaco.editor.IStandaloneDiffEditor;
+    let editor: monaco.editor.IStandaloneCodeEditor | monaco.editor.IStandaloneDiffEditor | monaco.editor.IMultiFileDiffEditor;
     let modifiedEditor: monaco.editor.IStandaloneCodeEditor;
     let editorContainer: HTMLElement;
     let vimMode: any;
@@ -28,6 +28,7 @@
     $: file = $fileStore.openFiles.get(filepath);
     $: content = file?.content ?? "";
     $: language = file?.language ?? "plaintext";
+    $: isHunksView = filepath?.startsWith("[hunks]") ?? false;
     $: isDiff = filepath?.startsWith("[diff]") ?? false;
     $: state = $editorStateStore[filepath];
 
@@ -37,6 +38,9 @@
 
         if (isDiff) {
             return (editor as monaco.editor.IStandaloneDiffEditor).getModifiedEditor().getValue();
+        } else if (isHunksView) {
+            // Not sure how to get content from multi-file diff editor
+            return "";
         } else {
             return (editor as monaco.editor.IStandaloneCodeEditor).getValue();
         }
@@ -90,6 +94,25 @@
         return { original: original.trimEnd(), modified: modified.trimEnd() };
     }
 
+    function createHunksModels(hunks: any[]) {
+        return hunks.map(hunk => {
+            const { original, modified } = parseDiff(hunk.content);
+            return {
+                original: {
+                    uri: monaco.Uri.parse(`original://${hunk.filepath}#${hunk.id}`),
+                    content: original
+                },
+                modified: {
+                    uri: monaco.Uri.parse(`modified://${hunk.filepath}#${hunk.id}`),
+                    content: modified
+                },
+                label: hunk.filepath,
+                description: `Lines ${hunk.startLine}-${hunk.endLine}`,
+                detail: hunk.type === 'add' ? 'Addition' : hunk.type === 'delete' ? 'Deletion' : 'Modification'
+            };
+        });
+    }
+
     onMount(() => {
         if (!editorContainer) return;
 
@@ -131,19 +154,39 @@
             },
         };
 
-        // Create editor
-        if (isDiff) {
+        // Create editor based on type
+        if (isHunksView) {
+            editor = monaco.editor.createMultiFileDiffEditor(editorContainer, {
+                ...baseOptions,
+                readOnly: true,
+                originalEditable: false,
+                renderSideBySide: false,
+                ignoreTrimWhitespace: false,
+                enableSplitViewResizing: false,
+                renderOverviewRuler: false,
+                hideUnchangedRegions: {
+                    contextLineCount: 3,
+                    enabled: true
+                }
+            });
+
+            const hunksModels = createHunksModels(file.hunks);
+            (editor as monaco.editor.IMultiFileDiffEditor).setModel({
+                changes: hunksModels
+            });
+
+        } else if (isDiff) {
             editor = monaco.editor.createDiffEditor(editorContainer, {
                 ...baseOptions,
                 readOnly: true,
                 originalEditable: false,
-                hideUnchangedRegions: {
-                    contextLineCount: 4,
-                    enabled: true
-                },
                 renderSideBySide: false,
                 ignoreTrimWhitespace: false,
                 enableSplitViewResizing: false,
+                hideUnchangedRegions: {
+                    contextLineCount: 4,
+                    enabled: true
+                }
             });
 
             const { original, modified } = parseDiff(content);
@@ -155,12 +198,9 @@
                 modified: modifiedModel,
             });
 
-            // Get the modified editor
             modifiedEditor = (editor as monaco.editor.IStandaloneDiffEditor).getModifiedEditor();
 
             return () => {
-                originalModel.dispose();
-                modifiedModel.dispose();
                 if (editor) {
                     if (vimMode) {
                         vimMode.dispose();
@@ -246,16 +286,18 @@
                 original: originalModel,
                 modified: modifiedModel,
             });
+        } else if (isHunksView) {
+            // Not sure how to update content for multi-file diff editor
         } else {
             (editor as monaco.editor.IStandaloneCodeEditor).setValue(content);
         }
     }
 
     // Watch for vim status bar mount and config changes
-    $: if (editor && vimStatusBar && $editorConfigStore.editor.vim?.enabled && !vimMode && !isDiff) {
+    $: if (editor && vimStatusBar && $editorConfigStore.editor.vim?.enabled && !vimMode && !isDiff && !isHunksView) {
         vimMode = initVimMode(editor, vimStatusBar);
         vimEnabled = true;
-    } else if ((editor && !$editorConfigStore.editor.vim?.enabled && vimMode) || (vimMode && isDiff)) {
+    } else if ((editor && !$editorConfigStore.editor.vim?.enabled && vimMode) || (vimMode && (isDiff || isHunksView))) {
         vimMode.dispose();
         vimMode = null;
         vimEnabled = false;
@@ -271,6 +313,8 @@
 <div class="h-full relative flex flex-grow flex-col" class:hidden={!active}>
     {#if filepath}
         {#if filepath.startsWith("[diff]")}
+            <DiffHeader {filepath} />
+        {:else if filepath.startsWith("[hunks]")}
             <DiffHeader {filepath} />
         {:else}
             <Breadcrumbs {filepath} />

@@ -20,12 +20,14 @@ import {
 import { fileStore } from '@/stores/fileStore';
 import type { service } from '@/lib/wailsjs/go/models';
 
+type SourceControlViews = 'file' | 'diff' | 'hunks';
+
 interface GitState {
     gitStatus: service.FileStatus[];
     stagedExpanded: boolean;
     changesExpanded: boolean;
     hierarchicalView: boolean;
-    showDiff: boolean;
+    defaultView: SourceControlViews;
     isRepository: boolean;
     isLoading: boolean;
     isQuickRefreshing: boolean;
@@ -46,7 +48,7 @@ function createGitStore() {
         stagedExpanded: true,
         changesExpanded: true,
         hierarchicalView: false,
-        showDiff: true,
+        defaultView: 'diff',
         isRepository: false,
         isLoading: true,
         isQuickRefreshing: false,
@@ -266,9 +268,9 @@ function createGitStore() {
             hierarchicalView: !state.hierarchicalView
         })),
 
-        toggleDiffView: () => update(state => ({
+        setDefaultView: (view: SourceControlViews) => update(state => ({
             ...state,
-            showDiff: !state.showDiff
+            defaultView: view
         })),
 
         setGitStatus: (status: service.FileStatus[]) => update(state => ({
@@ -599,7 +601,7 @@ function createGitStore() {
                 stagedExpanded: true,
                 changesExpanded: true,
                 hierarchicalView: false,
-                showDiff: true,
+                defaultView: 'diff',
                 isRepository: false,
                 isLoading: false,
                 isQuickRefreshing: false,
