@@ -6,6 +6,13 @@ BUILD_OPTIONS := -clean -upx
 BUILD_TAGS := 
 GO_ENV := GOFLAGS="-buildvcs=false"
 
+WAILS_PATH := $(shell command -v wails 2>/dev/null)
+
+# If Wails is not installed, exit the make process
+ifeq ($(WAILS_PATH),)
+  $(error Wails is not installed. Please install Wails to proceed.)
+endif
+
 # Setup development environment
 configure:
 	docker compose up -d
@@ -13,9 +20,18 @@ configure:
 dev:
 	wails dev
 
+WEBKIT_TAG := $(shell \
+	if ! dpkg-query -W -f='${Status}' webkit2gtk-4.0 2>/dev/null | grep -q ""; then \
+		echo "-tags webkit2_41"; \
+	else \
+		echo ""; \
+	fi \
+)
+
 # Build development version
 build-dev:
-	$(GO_ENV) wails build
+	$(GO_ENV) wails build ${WEBKIT_TAG}
+
 
 # Build for different platforms
 build-windows:
