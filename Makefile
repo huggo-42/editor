@@ -41,7 +41,7 @@ build-mac:
 	$(GO_ENV) wails build -platform darwin/universal ${BUILD_OPTIONS}
 
 build-linux:
-	$(GO_ENV) wails build -platform linux/amd64 ${BUILD_OPTIONS} && \
+	$(GO_ENV) wails build ${WEBKIT_TAG} -platform linux/amd64 ${BUILD_OPTIONS} && \
 		cd build/debian && \
 		nfpm pkg --packager deb --target ../bin/ && \
 		nfpm pkg --packager rpm --target ../bin/
