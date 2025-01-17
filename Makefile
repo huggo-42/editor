@@ -21,7 +21,7 @@ dev:
 	wails dev
 
 WEBKIT_TAG := $(shell \
-	if ! dpkg-query -W -f='${Status}' webkit2gtk-4.0 2>/dev/null | grep -q ""; then \
+	if ! pkg-config --exists webkit2gtk-4.0; then \
 		echo "-tags webkit2_41"; \
 	else \
 		echo ""; \
